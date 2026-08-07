@@ -6,11 +6,29 @@
  */
 
 import path from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const projeto = path.resolve(__dirname, '..');
+
+function carregarEnvLocal() {
+  const arquivo = path.join(projeto, '.env');
+  if (!existsSync(arquivo)) return;
+  for (const linha of readFileSync(arquivo, 'utf8').split(/\r?\n/)) {
+    const texto = linha.trim();
+    if (!texto || texto.startsWith('#')) continue;
+    const separador = texto.indexOf('=');
+    if (separador <= 0) continue;
+    const nome = texto.slice(0, separador).trim();
+    const valor = texto.slice(separador + 1).trim().replace(/^(['"])(.*)\1$/, '$2');
+    if (!(nome in process.env)) process.env[nome] = valor;
+  }
+}
+
+carregarEnvLocal();
+
 const diretorioMcp = process.env.SANKHYA_MCP_DIR
   ? path.resolve(process.env.SANKHYA_MCP_DIR)
   : path.resolve(projeto, '..', 'sankhya-mcp');
