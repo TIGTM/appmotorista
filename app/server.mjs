@@ -1,5 +1,6 @@
 import http from 'node:http';
 import crypto from 'node:crypto';
+import { existsSync, readFileSync } from 'node:fs';
 import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -7,6 +8,23 @@ import { fileURLToPath } from 'node:url';
 import { consultarCargas } from '../scripts/consulta-app-motorista-readonly.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+function carregarEnvLocal() {
+  const arquivo = path.join(__dirname, '.env');
+  if (!existsSync(arquivo)) return;
+  for (const linha of readFileSync(arquivo, 'utf8').split(/\r?\n/)) {
+    const texto = linha.trim();
+    if (!texto || texto.startsWith('#')) continue;
+    const separador = texto.indexOf('=');
+    if (separador <= 0) continue;
+    const nome = texto.slice(0, separador).trim();
+    const valor = texto.slice(separador + 1).trim().replace(/^(['"])(.*)\1$/, '$2');
+    if (!(nome in process.env)) process.env[nome] = valor;
+  }
+}
+
+carregarEnvLocal();
+
 const publicDir = path.join(__dirname, 'public');
 const dataDir = path.join(__dirname, 'data');
 const evidenceDir = path.join(dataDir, 'evidencias');
