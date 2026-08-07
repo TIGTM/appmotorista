@@ -10,8 +10,9 @@ import { consultarCargas } from '../scripts/consulta-app-motorista-readonly.mjs'
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 function carregarEnvLocal() {
-  const arquivo = path.join(__dirname, '.env');
-  if (!existsSync(arquivo)) return;
+  const arquivos = [path.join(__dirname, '.env'), path.join(__dirname, '..', '.env')];
+  const arquivo = arquivos.find((caminho) => existsSync(caminho));
+  if (!arquivo) return;
   for (const linha of readFileSync(arquivo, 'utf8').split(/\r?\n/)) {
     const texto = linha.trim();
     if (!texto || texto.startsWith('#')) continue;
