@@ -1,0 +1,14 @@
+{
+  "name": "appmotorista",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Aplicativo web do motorista da GTM, com consulta Sankhya somente leitura e evidencias locais.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node app/server.mjs",
+    "check": "node --check app/server.mjs && node --check app/public/app.js && node --check app/public/sw.js && node --check scripts/consulta-app-motorista-readonly.mjs"
+  }
+}

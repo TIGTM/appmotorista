@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#17745a">
+    <meta name="description" content="Aplicativo operacional de cargas e evidências de entrega da GTM.">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <title>GTM Entregas</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div id="login-view" class="login-view">
+      <header class="topbar">
+        <div class="topbar__inner">
+          <a class="brand" href="/" aria-label="GTM Entregas">
+            <span class="brand__mark">G</span>
+            <span><strong>GTM</strong><small>ENTREGAS</small></span>
+          </a>
+          <span class="topbar__status"><span class="status-dot"></span>Piloto operacional</span>
+        </div>
+      </header>
+      <main class="login-shell">
+        <section class="login-intro">
+          <p class="eyebrow">PORTAL DO MOTORISTA</p>
+          <h1>Entregas organizadas, evidências no lugar certo.</h1>
+          <p>Consulte a carga vinculada ao motorista e registre a evidência da entrega com foto, assinatura e localização autorizada no momento da operação.</p>
+          <div class="login-trust"><i data-lucide="shield-check" aria-hidden="true"></i><span>Sankhya em consulta. Nenhuma baixa é feita por este piloto.</span></div>
+        </section>
+        <form id="login-form" class="login-card">
+          <div class="login-card__heading">
+            <span class="brand__mark brand__mark--small">G</span>
+            <div><p class="eyebrow">ACESSO SEGURO</p><h2>Entrar no aplicativo</h2></div>
+          </div>
+          <label class="field field--stacked"><span>Usuário</span><input id="login-user" autocomplete="username" value="silas" required></label>
+          <label class="field field--stacked"><span>Senha</span><input id="login-password" type="password" autocomplete="current-password" required></label>
+          <p id="login-error" class="form-error" role="alert"></p>
+          <button class="button button--primary button--full" type="submit"><i data-lucide="log-in" aria-hidden="true"></i>Entrar</button>
+          <p class="login-card__note">Acesso de homologação local. As credenciais de produção serão definidas no servidor.</p>
+        </form>
+      </main>
+    </div>
+
+    <div id="app-view" class="app-view is-hidden">
+      <header class="topbar">
+        <div class="topbar__inner">
+          <a class="brand" href="/" aria-label="GTM Entregas">
+            <span class="brand__mark">G</span>
+            <span><strong>GTM</strong><small>ENTREGAS</small></span>
+          </a>
+          <div class="topbar__actions">
+            <span class="topbar__status"><span class="status-dot"></span><span id="session-label">Motorista autenticado</span></span>
+            <button id="logout-button" class="button button--quiet" type="button" title="Sair do aplicativo"><i data-lucide="log-out" aria-hidden="true"></i><span>Sair</span></button>
+          </div>
+        </div>
+      </header>
+
+      <main class="page-shell">
+        <section class="intro" aria-labelledby="page-title">
+          <div><p class="eyebrow">ROTA DO DIA</p><h1 id="page-title">Minhas cargas</h1><p class="intro__meta" id="driver-name">Carregando motorista...</p></div>
+          <button class="button button--primary" id="refresh-button" type="button" title="Atualizar cargas"><i data-lucide="refresh-cw" aria-hidden="true"></i>Atualizar</button>
+        </section>
+
+        <section class="filter-strip" aria-label="Filtro da carga">
+          <label class="field"><span>Ordem de carga</span><input id="oc-input" inputmode="numeric" value="460" aria-label="Número da ordem de carga"></label>
+          <div class="filter-strip__context"><span class="context-label">Empresa</span><strong id="company-name">Carregando...</strong></div>
+          <div class="sync-state" id="sync-state"><span class="sync-state__dot"></span><span>Sincronizando</span></div>
+        </section>
+
+        <section class="metrics" aria-label="Resumo da rota">
+          <div class="metric"><span class="metric__label">Cargas abertas</span><strong class="metric__value" id="metric-loads">-</strong></div>
+          <div class="metric"><span class="metric__label">Pedidos</span><strong class="metric__value" id="metric-orders">-</strong></div>
+          <div class="metric metric--accent"><span class="metric__label">Peso bruto</span><strong class="metric__value" id="metric-weight">-</strong></div>
+          <div class="metric metric--dark"><span class="metric__label">Valor total</span><strong class="metric__value" id="metric-value">-</strong></div>
+        </section>
+
+        <section class="content-section" aria-labelledby="loads-title">
+          <div class="section-heading"><div><p class="eyebrow">OPERAÇÃO</p><h2 id="loads-title">Cargas atribuídas</h2></div><span class="section-count" id="load-count">0 cargas</span></div>
+          <div id="loads" class="loads" aria-live="polite"><div class="loading-state"><span class="spinner"></span><span>Buscando cargas...</span></div></div>
+        </section>
+
+        <section id="evidence-panel" class="evidence-panel is-hidden" aria-labelledby="evidence-title">
+          <div class="section-heading"><div><p class="eyebrow">COMPROVANTE LOCAL</p><h2 id="evidence-title">Registrar evidência da entrega</h2><p class="section-subtitle" id="evidence-order-label">Selecione um pedido na carga.</p></div><button id="close-evidence-button" class="button button--quiet" type="button"><i data-lucide="x" aria-hidden="true"></i>Fechar</button></div>
+          <div class="evidence-layout">
+            <form id="evidence-form" class="evidence-form">
+              <div class="capture-grid">
+                <div class="capture-card" data-photo-card="nota">
+                  <div class="capture-card__heading"><div><strong>Foto da nota</strong><span id="photo-status-nota">Obrigatória</span></div><button class="button button--quiet" type="button" data-camera-target="nota"><i data-lucide="camera" aria-hidden="true"></i>Capturar</button></div>
+                  <div class="capture-empty" id="photo-empty-nota"><i data-lucide="image" aria-hidden="true"></i><span>A câmera ou a galeria será solicitada somente ao tocar em Capturar.</span></div>
+                  <img id="photo-preview-nota" class="capture-preview is-hidden" alt="Prévia da foto da nota">
+                </div>
+                <div class="capture-card" data-photo-card="entrega">
+                  <div class="capture-card__heading"><div><strong>Foto da entrega</strong><span id="photo-status-entrega">Obrigatória</span></div><button class="button button--quiet" type="button" data-camera-target="entrega"><i data-lucide="camera" aria-hidden="true"></i>Capturar</button></div>
+                  <div class="capture-empty" id="photo-empty-entrega"><i data-lucide="package-check" aria-hidden="true"></i><span>Registre a mercadoria no local da entrega.</span></div>
+                  <img id="photo-preview-entrega" class="capture-preview is-hidden" alt="Prévia da foto da entrega">
+                </div>
+              </div>
+
+              <div class="signature-card">
+                <div class="capture-card__heading"><div><strong>Assinatura do recebedor</strong><span id="signature-status">Obrigatória</span></div><button id="clear-signature" class="button button--quiet" type="button"><i data-lucide="eraser" aria-hidden="true"></i>Limpar</button></div>
+                <canvas id="signature-pad" width="900" height="220" aria-label="Campo para assinatura do recebedor"></canvas>
+              </div>
+
+              <label class="field field--stacked"><span>Observação da entrega</span><textarea id="evidence-note" rows="3" maxlength="1000" placeholder="Ex.: recebido por... / ocorrência..." ></textarea></label>
+              <div class="evidence-form__actions"><button id="submit-evidence" class="button button--primary" type="submit" disabled><i data-lucide="check-circle-2" aria-hidden="true"></i>Salvar evidência do piloto</button><span class="form-hint">Este registro fica no aplicativo e não altera o Sankhya.</span></div>
+            </form>
+
+            <aside class="evidence-aside">
+              <div class="aside-card"><div class="capture-card__heading"><div><strong>Localização da entrega</strong><span id="location-status">Obrigatória</span></div><i data-lucide="map-pin" aria-hidden="true"></i></div><p class="aside-card__text">A permissão do GPS só será solicitada quando você tocar no botão abaixo.</p><button id="location-button" class="button button--primary button--full" type="button"><i data-lucide="locate-fixed" aria-hidden="true"></i><span>Solicitar localização</span></button><div id="location-result" class="location-result is-hidden"></div></div>
+              <div class="aside-card"><div class="capture-card__heading"><div><strong>Checklist</strong><span>Antes de salvar</span></div><i data-lucide="list-checks" aria-hidden="true"></i></div><ul class="checklist"><li id="check-nota"><i data-lucide="circle" aria-hidden="true"></i>Foto da nota</li><li id="check-entrega"><i data-lucide="circle" aria-hidden="true"></i>Foto da entrega</li><li id="check-assinatura"><i data-lucide="circle" aria-hidden="true"></i>Assinatura</li><li id="check-localizacao"><i data-lucide="circle" aria-hidden="true"></i>Localização</li></ul></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="content-section history-section" aria-labelledby="history-title">
+          <div class="section-heading"><div><p class="eyebrow">RASTREABILIDADE</p><h2 id="history-title">Evidências registradas no piloto</h2></div><span class="section-count" id="evidence-count">0 registros</span></div>
+          <div id="evidence-history" class="history-list" aria-live="polite"><div class="empty-state"><strong>Nenhuma evidência registrada</strong><span>As confirmações locais aparecerão aqui.</span></div></div>
+        </section>
+      </main>
+
+      <footer class="footer-note"><i data-lucide="shield-check" aria-hidden="true"></i><span>Sankhya em consulta somente leitura. Fotos, assinatura e GPS permanecem separados no piloto local.</span></footer>
+    </div>
+
+    <div id="camera-modal" class="modal is-hidden" role="dialog" aria-modal="true" aria-labelledby="camera-title">
+      <div class="modal__backdrop" data-close-camera></div>
+      <div class="modal__card">
+        <div class="modal__heading"><div><p class="eyebrow">EVIDÊNCIA</p><h2 id="camera-title">Capturar foto</h2></div><button id="close-camera" class="icon-button" type="button" title="Fechar câmera"><i data-lucide="x" aria-hidden="true"></i></button></div>
+        <video id="camera-video" class="camera-video" autoplay playsinline muted></video>
+        <canvas id="camera-canvas" class="is-hidden"></canvas>
+        <p id="camera-status" class="camera-status">Autorize a câmera para continuar.</p>
+        <div class="modal__actions"><button id="capture-button" class="button button--primary" type="button"><i data-lucide="aperture" aria-hidden="true"></i>Tirar foto</button><label class="button button--quiet"><i data-lucide="image-up" aria-hidden="true"></i>Escolher arquivo<input id="camera-file-input" class="visually-hidden" type="file" accept="image/*" capture="environment"></label></div>
+      </div>
+    </div>
+
+    <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="/app.js?v=3" type="module"></script>
+  </body>
+</html>

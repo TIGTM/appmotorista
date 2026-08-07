@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+app/data/*
+!app/data/.gitkeep
+node_modules/
+*.log
+*.zip
+*.tar
+*.tar.gz
+.DS_Store
+Thumbs.db
+.vscode/
