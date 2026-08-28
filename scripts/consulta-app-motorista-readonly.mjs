@@ -33,7 +33,10 @@ const diretorioMcp = process.env.SANKHYA_MCP_DIR
   ? path.resolve(process.env.SANKHYA_MCP_DIR)
   : path.resolve(projeto, '..', 'sankhya-mcp');
 
-const proxyUrl = String(process.env.SANKHYA_API_PROXY_URL || '').trim();
+// O proxy local e o caminho padrao de producao; o .env pode sobrescreve-lo.
+const proxyUrl = String(
+  process.env.SANKHYA_API_PROXY_URL || 'http://127.0.0.1:13000/sql'
+).trim();
 const proxyToken = String(process.env.SANKHYA_API_PROXY_TOKEN || '').trim();
 
 let executarSQL;

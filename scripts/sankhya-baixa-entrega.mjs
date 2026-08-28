@@ -26,7 +26,10 @@ function carregarEnvLocal(arquivo) {
 carregarEnvLocal(path.join(projeto, '.env'));
 carregarEnvLocal(path.join(projeto, 'app', '.env'));
 
-const PROXY_URL = String(process.env.SANKHYA_ACTION_PROXY_URL || '').trim();
+// O proxy local e o caminho padrao de producao; o .env pode sobrescreve-lo.
+const PROXY_URL = String(
+  process.env.SANKHYA_ACTION_PROXY_URL || 'http://127.0.0.1:13000/service'
+).trim();
 const PROXY_TOKEN = String(process.env.SANKHYA_ACTION_PROXY_TOKEN || '').trim();
 const GATEWAY_URL = String(
   process.env.SANKHYA_GATEWAY_URL || 'https://api.sankhya.com.br/gateway/v1/mge/service.sbr'
