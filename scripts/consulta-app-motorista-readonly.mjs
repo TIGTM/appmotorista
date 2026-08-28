@@ -117,6 +117,9 @@ SELECT
     C.DTNEG,
     C.STATUSNOTA,
     C.PENDENTE,
+    C.AD_DTENTREGA,
+    C.AD_SITENTREGUE,
+    C.AD_OBSSITENTREGUE,
     C.ORDEMCARGA,
     C.SEQCARGA,
     C.VLRNOTA,
@@ -212,6 +215,9 @@ ORDER BY
         dataNegociacao: linha.DTNEG,
         statusNota: linha.STATUSNOTA,
         pendente: linha.PENDENTE,
+        dataEntrega: linha.AD_DTENTREGA,
+        statusEntrega: linha.AD_SITENTREGUE,
+        observacaoStatusEntrega: linha.AD_OBSSITENTREGUE,
         sequenciaCarga: linha.SEQCARGA,
         valorNota: linha.VLRNOTA,
         pesoBruto: linha.PESO_BRUTO_PEDIDO,
@@ -246,6 +252,59 @@ ORDER BY
       apenasPedidosPendentes: true,
     },
     cargas: [...cargasPorCodigo.values()],
+  };
+}
+
+/**
+ * Consulta o vinculo de um pedido com a carga do motorista sem aplicar os
+ * filtros de pedido aberto. Isso permite validar a baixa e confirmar o
+ * resultado mesmo depois que o Sankhya fecha o pedido.
+ */
+export async function consultarPedidoEntrega({ empresa, motorista, oc, pedido } = {}) {
+  const codigoEmpresa = inteiroPositivo('empresa', empresa);
+  const codigoMotorista = inteiroPositivo('motorista', motorista);
+  const ordemCarga = inteiroPositivo('oc', oc);
+  const numeroPedido = inteiroPositivo('pedido', pedido);
+  const sql = `
+SELECT TOP 1
+    O.CODEMP,
+    O.ORDEMCARGA AS CODIGO_OC,
+    O.SITUACAO AS SITUACAO_OC,
+    O.ENVIOWMS,
+    O.CODPARCMOTORISTA,
+    C.NUNOTA,
+    C.STATUSNOTA,
+    C.PENDENTE,
+    C.AD_DTENTREGA,
+    C.AD_SITENTREGUE,
+    C.AD_OBSSITENTREGUE
+FROM SANKHYA.TGFORD O
+JOIN SANKHYA.TGFCAB C
+  ON C.ORDEMCARGA = O.ORDEMCARGA
+ AND C.CODEMP = O.CODEMP
+WHERE O.CODEMP = ${codigoEmpresa}
+  AND O.CODPARCMOTORISTA = ${codigoMotorista}
+  AND O.ORDEMCARGA = ${ordemCarga}
+  AND C.NUNOTA = ${numeroPedido};
+`;
+  const resultado = await executarSQL(sql);
+  const bruto = resultado.registros?.[0];
+  if (!bruto) return null;
+  const linha = Object.fromEntries(
+    Object.entries(bruto).map(([chave, valor]) => [chave, limpar(valor)])
+  );
+  return {
+    empresa: linha.CODEMP,
+    oc: linha.CODIGO_OC,
+    situacaoOc: linha.SITUACAO_OC,
+    envioWms: linha.ENVIOWMS,
+    motorista: linha.CODPARCMOTORISTA,
+    pedido: linha.NUNOTA,
+    statusNota: linha.STATUSNOTA,
+    pendente: linha.PENDENTE,
+    dataEntrega: linha.AD_DTENTREGA,
+    statusEntrega: linha.AD_SITENTREGUE,
+    observacaoStatusEntrega: linha.AD_OBSSITENTREGUE,
   };
 }
 

@@ -10,10 +10,22 @@ Aplicativo web para o piloto do motorista da GTM.
 - Assinatura no aparelho.
 - Captura de localizacao somente quando solicitada.
 - Armazenamento local das evidencias no servidor do app.
+- Confirmacao de entrega pela acao oficial do Sankhya, apos a evidencia ser salva.
 
-## Limite operacional
+## Fluxo de baixa
 
-Esta versao nao confirma pedido, nao baixa estoque, nao envia ordem ao WMS e nao grava baixa no Sankhya. A rota de evidencias e uma etapa de homologacao separada da escrita no ERP.
+O app salva fotos, assinatura, GPS e data da entrega antes de solicitar a baixa. Em
+seguida chama `ActionButtonsSP.executeJava`, com a acao `4` (`Atualização Ordem de
+Carga`) e os mesmos campos usados na tela Ordens de Carga:
+
+- `ENTREGA=2` (Entregue)
+- `DTENTREGA` (data informada pelo motorista)
+- empresa, ordem de carga e pedido selecionados no servidor
+
+Depois da chamada, o app consulta novamente o pedido e somente marca a baixa como
+confirmada quando `AD_SITENTREGUE=2`. Uma falha preserva a evidencia e libera retry.
+O app nao faz `INSERT`, `UPDATE` ou `DELETE` por SQL e nao envia comandos livres ao
+navegador.
 
 ## Execucao local
 
@@ -29,10 +41,21 @@ npm start
 
 Em producao, defina `SANKHYA_API_PROXY_URL` apontando para o proxy interno de consulta e `SANKHYA_API_PROXY_TOKEN` no ambiente do processo. O app nao precisa carregar credenciais do OAuth nem o diretorio do `sankhya-mcp`.
 
+Para habilitar a baixa, configure `SANKHYA_BAIXA_ATIVA=true` somente após
+homologar a integração. O caminho recomendado é configurar um proxy interno de
+serviços em `SANKHYA_ACTION_PROXY_URL`, aceitando somente a ação
+`ActionButtonsSP.executeJava` e autenticado por `SANKHYA_ACTION_PROXY_TOKEN`.
+
+Em uma instalação no mesmo servidor do `sankhya-mcp`, também é possível usar o
+gateway diretamente com `SANKHYA_CLIENT_ID`, `SANKHYA_CLIENT_SECRET` e
+`SANKHYA_APPKEY` no ambiente do processo. Essas credenciais ficam apenas no
+backend e nunca no frontend.
+
 ## Validacao
 
 ```powershell
 npm run check
+npm test
 ```
 
 ## PM2

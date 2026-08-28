@@ -5,7 +5,8 @@ import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { consultarCargas } from '../scripts/consulta-app-motorista-readonly.mjs';
+import { consultarCargas, consultarPedidoEntrega } from '../scripts/consulta-app-motorista-readonly.mjs';
+import { executarBaixaEntrega, dataEntregaValida } from '../scripts/sankhya-baixa-entrega.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -33,6 +34,8 @@ const evidenceManifest = path.join(dataDir, 'evidencias.json');
 const port = Number(process.env.PORT || 4173);
 const sessionMaxAge = 12 * 60 * 60;
 const sessions = new Map();
+const baixaAtiva = String(process.env.SANKHYA_BAIXA_ATIVA || '').toLowerCase() === 'true';
+const baixasEmAndamento = new Set();
 
 // Credencial de desenvolvimento. Em produção, defina ambas as variáveis no ambiente.
 const pilotUser = String(process.env.APP_DRIVER_USER || 'silas').trim().toLowerCase();
@@ -133,6 +136,21 @@ function numeroSeguro(valor, nome) {
   return numero;
 }
 
+function inteiroPositivo(valor, nome) {
+  const numero = Number(valor);
+  if (!Number.isInteger(numero) || numero <= 0) throw new Error(`${nome} inválido.`);
+  return numero;
+}
+
+function dataHojeLocal() {
+  const agora = new Date();
+  const partes = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).formatToParts(agora);
+  const valores = Object.fromEntries(partes.map(({ type, value }) => [type, value]));
+  return `${valores.year}-${valores.month}-${valores.day}`;
+}
+
 function decodificarImagem(dataUrl, nome) {
   if (!dataUrl) return null;
   const match = String(dataUrl).match(/^data:(image\/(?:jpeg|jpg|png|webp));base64,([A-Za-z0-9+/=]+)$/i);
@@ -153,6 +171,16 @@ async function lerEvidencias() {
     if (erro.code === 'ENOENT') return [];
     throw erro;
   }
+}
+
+async function gravarEvidencias(evidencias) {
+  await fs.writeFile(evidenceManifest, JSON.stringify(evidencias, null, 2), 'utf8');
+}
+
+async function localizarEvidencia(id, sessao) {
+  const evidencias = await lerEvidencias();
+  const indice = evidencias.findIndex((item) => item.id === id && item.usuario === sessao.usuario);
+  return { evidencias, indice, evidencia: indice >= 0 ? evidencias[indice] : null };
 }
 
 async function salvarArquivoImagem(dataUrl, nome, id) {
@@ -264,13 +292,13 @@ async function atender(req, res) {
     }
     const token = criarSessao();
     definirCookie(res, token);
-    return responderJson(res, 200, { motorista: pilotDriver, usuario: pilotUser, ambiente: 'piloto local' });
+    return responderJson(res, 200, { motorista: pilotDriver, usuario: pilotUser, ambiente: 'piloto operacional', baixaHabilitada: baixaAtiva });
   }
 
   if (req.method === 'GET' && url.pathname === '/api/sessao') {
     const sessao = exigirSessao(req, res);
     if (!sessao) return;
-    return responderJson(res, 200, { motorista: pilotDriver, usuario: sessao.usuario, ambiente: 'piloto local' });
+    return responderJson(res, 200, { motorista: pilotDriver, usuario: sessao.usuario, ambiente: 'piloto operacional', baixaHabilitada: baixaAtiva });
   }
 
   if (req.method === 'POST' && url.pathname === '/api/logout') {
@@ -318,6 +346,8 @@ async function atender(req, res) {
       const accuracy = body.accuracy === undefined || body.accuracy === null ? null : numeroSeguro(body.accuracy, 'Precisão');
       const oc = limparTexto(body.oc, 30);
       const pedido = limparTexto(body.pedido, 30);
+      const dataEntrega = limparTexto(body.dataEntrega || dataHojeLocal(), 10);
+      dataEntregaValida(dataEntrega);
       if (!oc || !pedido) throw new Error('Informe a ordem de carga e o pedido.');
       if (!body.fotoNota || !body.fotoEntrega || !body.assinatura) throw new Error('Foto da nota, foto da entrega e assinatura são obrigatórias.');
 
@@ -334,20 +364,139 @@ async function atender(req, res) {
         empresa: sessao.empresa,
         oc,
         pedido,
+        dataEntrega,
         latitude,
         longitude,
         accuracy,
         observacao: limparTexto(body.observacao, 1000),
         criadoEm: new Date().toISOString(),
-        status: 'PILOTO_LOCAL',
+        status: 'EVIDENCIA_SALVA',
+        baixa: {
+          status: 'PENDENTE',
+          tentativas: 0,
+          atualizadoEm: new Date().toISOString(),
+        },
         arquivos,
       };
       const evidencias = await lerEvidencias();
       evidencias.unshift(evidencia);
-      await fs.writeFile(evidenceManifest, JSON.stringify(evidencias, null, 2), 'utf8');
+      await gravarEvidencias(evidencias);
       return responderJson(res, 201, evidencia);
     } catch (erro) {
       return responderErro(res, 400, erro.message || 'Não foi possível salvar a evidência.');
+    }
+  }
+
+  const baixaMatch = url.pathname.match(/^\/api\/evidencias\/([a-f0-9-]+)\/baixa$/i);
+  if (req.method === 'POST' && baixaMatch) {
+    const sessao = exigirSessao(req, res);
+    if (!sessao) return;
+    const id = baixaMatch[1];
+    if (baixasEmAndamento.has(id)) return responderErro(res, 409, 'Esta baixa já está sendo processada.');
+    if (!baixaAtiva) return responderErro(res, 503, 'A baixa oficial ainda não foi habilitada no servidor.');
+
+    const local = await localizarEvidencia(id, sessao);
+    if (!local.evidencia) return responderErro(res, 404, 'Evidência não encontrada.');
+    const evidencia = local.evidencia;
+    if (evidencia.baixa?.status === 'CONFIRMADA') return responderJson(res, 200, evidencia);
+
+    let body = {};
+    try { body = await lerJson(req, 64 * 1024); } catch { return responderErro(res, 400, 'Dados da baixa inválidos.'); }
+    const dataEntrega = limparTexto(body.dataEntrega || evidencia.dataEntrega || dataHojeLocal(), 10);
+    try {
+      dataEntregaValida(dataEntrega);
+      inteiroPositivo(evidencia.oc, 'Ordem de carga');
+      inteiroPositivo(evidencia.pedido, 'Pedido');
+    } catch (erro) {
+      return responderErro(res, 400, erro.message);
+    }
+
+    baixasEmAndamento.add(id);
+    try {
+      const registroAntes = await consultarPedidoEntrega({
+        empresa: sessao.empresa,
+        motorista: sessao.id,
+        oc: evidencia.oc,
+        pedido: evidencia.pedido,
+      });
+      if (!registroAntes) return responderErro(res, 409, 'O pedido não está vinculado à carga deste motorista.');
+
+      // Se a tela do Sankhya já concluiu a entrega, apenas sincroniza o
+      // comprovante local. Isso torna o retry seguro e evita duplicidade.
+      if (String(registroAntes.statusEntrega) === '2') {
+        evidencia.status = 'BAIXA_CONFIRMADA';
+        evidencia.dataEntrega = dataEntrega;
+        evidencia.baixa = {
+          ...(evidencia.baixa || {}),
+          status: 'CONFIRMADA',
+          dataEntrega,
+          confirmadoEm: evidencia.baixa?.confirmadoEm || new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
+        };
+        local.evidencias[local.indice] = evidencia;
+        await gravarEvidencias(local.evidencias);
+        return responderJson(res, 200, evidencia);
+      }
+
+      if (String(registroAntes.situacaoOc) !== 'A' || String(registroAntes.envioWms) !== 'N') {
+        return responderErro(res, 409, 'A carga não está aberta e fora do WMS para receber esta baixa.');
+      }
+      if (String(registroAntes.statusNota) !== 'A' || String(registroAntes.pendente) !== 'S') {
+        return responderErro(res, 409, 'O pedido não está pendente para baixa de entrega.');
+      }
+
+      evidencia.status = 'BAIXA_PROCESSANDO';
+      evidencia.dataEntrega = dataEntrega;
+      evidencia.baixa = {
+        ...(evidencia.baixa || {}),
+        status: 'PROCESSANDO',
+        dataEntrega,
+        tentativas: Number(evidencia.baixa?.tentativas || 0) + 1,
+        atualizadoEm: new Date().toISOString(),
+        mensagem: null,
+      };
+      local.evidencias[local.indice] = evidencia;
+      await gravarEvidencias(local.evidencias);
+
+      await executarBaixaEntrega({ empresa: sessao.empresa, oc: evidencia.oc, pedido: evidencia.pedido, dataEntrega });
+
+      const registroDepois = await consultarPedidoEntrega({
+        empresa: sessao.empresa,
+        motorista: sessao.id,
+        oc: evidencia.oc,
+        pedido: evidencia.pedido,
+      });
+      if (String(registroDepois?.statusEntrega) !== '2') {
+        throw new Error('A ação foi enviada, mas a confirmação ainda não apareceu na consulta do Sankhya.');
+      }
+
+      evidencia.status = 'BAIXA_CONFIRMADA';
+      evidencia.baixa = {
+        ...(evidencia.baixa || {}),
+        status: 'CONFIRMADA',
+        dataEntrega,
+        confirmadoEm: new Date().toISOString(),
+        atualizadoEm: new Date().toISOString(),
+        mensagem: null,
+      };
+      local.evidencias[local.indice] = evidencia;
+      await gravarEvidencias(local.evidencias);
+      return responderJson(res, 200, evidencia);
+    } catch (erro) {
+      evidencia.status = 'BAIXA_PENDENTE';
+      evidencia.baixa = {
+        ...(evidencia.baixa || {}),
+        status: 'ERRO',
+        dataEntrega,
+        atualizadoEm: new Date().toISOString(),
+        mensagem: String(erro.message || 'Falha ao confirmar a baixa.').slice(0, 240),
+      };
+      local.evidencias[local.indice] = evidencia;
+      await gravarEvidencias(local.evidencias).catch(() => {});
+      console.error(`[baixa] falha OC ${evidencia.oc} pedido ${evidencia.pedido}:`, erro.message);
+      return responderErro(res, 502, 'A evidência foi preservada, mas não foi possível confirmar a baixa. Tente sincronizar novamente.');
+    } finally {
+      baixasEmAndamento.delete(id);
     }
   }
 

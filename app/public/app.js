@@ -1,5 +1,6 @@
 const state = {
   sessao: null,
+  config: { baixaHabilitada: false },
   dados: null,
   evidencias: [],
   pedidoSelecionado: null,
@@ -78,6 +79,7 @@ function showLogin() {
 
 function showApp(session) {
   state.sessao = session;
+  state.config = { baixaHabilitada: Boolean(session.baixaHabilitada) };
   $('#login-view').classList.add('is-hidden');
   $('#app-view').classList.remove('is-hidden');
   $('#driver-name').textContent = `${session.motorista.nome} · Motorista vinculado`;
@@ -170,6 +172,9 @@ function resetEvidence() {
   state.assinatura = '';
   state.assinaturaDesenhada = false;
   $('#evidence-note').value = '';
+  const date = new Date();
+  const offset = date.getTimezoneOffset();
+  $('#evidence-date').value = new Date(date.getTime() - offset * 60000).toISOString().slice(0, 10);
   ['nota', 'entrega'].forEach((tipo) => {
     $(`#photo-preview-${tipo}`).src = '';
     $(`#photo-preview-${tipo}`).classList.add('is-hidden');
@@ -336,6 +341,8 @@ async function salvarEvidencia(event) {
   event.preventDefault();
   if (!state.pedidoSelecionado) return showToast('Selecione um pedido antes de salvar.', 'error');
   if (!state.fotos.nota || !state.fotos.entrega || !state.assinaturaDesenhada || !state.coordenadas) return showToast('Complete o checklist antes de salvar.', 'error');
+  if (!$('#evidence-date').value) return showToast('Informe a data da entrega.', 'error');
+  if (!window.confirm('Confirmar a entrega e solicitar a baixa oficial no Sankhya?')) return;
   const button = $('#submit-evidence');
   button.disabled = true;
   button.innerHTML = '<span class="spinner spinner--small"></span>Salvando evidência...';
@@ -343,6 +350,7 @@ async function salvarEvidencia(event) {
     const resposta = await fetch('/api/evidencias', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
       oc: state.pedidoSelecionado.oc,
       pedido: state.pedidoSelecionado.pedido.numeroUnico,
+      dataEntrega: $('#evidence-date').value,
       fotoNota: state.fotos.nota,
       fotoEntrega: state.fotos.entrega,
       assinatura: state.assinatura,
@@ -355,14 +363,28 @@ async function salvarEvidencia(event) {
     if (!resposta.ok) throw new Error(data.erro || 'Não foi possível salvar a evidência.');
     state.evidencias.unshift(data);
     renderEvidenceHistory();
-    showToast('Evidência salva no piloto local. O Sankhya não foi alterado.', 'success');
+    let baixa = data;
+    try {
+      const baixaResposta = await fetch(`/api/evidencias/${encodeURIComponent(data.id)}/baixa`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataEntrega: $('#evidence-date').value }) });
+      baixa = await baixaResposta.json();
+      if (!baixaResposta.ok) throw new Error(baixa.erro || 'Não foi possível confirmar a baixa.');
+      const indice = state.evidencias.findIndex((item) => item.id === data.id);
+      if (indice >= 0) state.evidencias[indice] = baixa;
+      renderEvidenceHistory();
+      showToast('Entrega confirmada e baixa registrada no Sankhya.', 'success');
+    } catch (erro) {
+      const indice = state.evidencias.findIndex((item) => item.id === data.id);
+      if (indice >= 0 && baixa?.baixa) state.evidencias[indice] = baixa;
+      renderEvidenceHistory();
+      showToast(`Evidência salva. ${erro.message}`, 'error');
+    }
     $('#evidence-panel').classList.add('is-hidden');
     resetEvidence();
   } catch (erro) {
     showToast(erro.message, 'error');
   } finally {
     button.disabled = false;
-    button.innerHTML = '<i data-lucide="check-circle-2" aria-hidden="true"></i>Salvar evidência do piloto';
+    button.innerHTML = '<i data-lucide="check-circle-2" aria-hidden="true"></i>Salvar e confirmar entrega';
     updateChecklist();
     window.lucide?.createIcons();
   }
@@ -375,9 +397,11 @@ function renderEvidenceHistory() {
     container.innerHTML = '<div class="empty-state"><strong>Nenhuma evidência registrada</strong><span>As confirmações locais aparecerão aqui.</span></div>';
     return;
   }
-  container.innerHTML = state.evidencias.map((item) => `
-    <article class="history-row"><div><strong>Pedido ${escapeHtml(item.pedido)}</strong><span>OC ${escapeHtml(item.oc)} · ${formatDateTime(item.criadoEm)}</span></div><div class="history-row__location"><i data-lucide="map-pin" aria-hidden="true"></i><span>${Number(item.latitude).toFixed(5)}, ${Number(item.longitude).toFixed(5)}</span></div><div class="history-row__actions"><span class="badge badge--green">${escapeHtml(item.status)}</span><a class="icon-button" href="/api/evidencias/${item.id}/arquivo/entrega" target="_blank" rel="noreferrer" title="Abrir foto da entrega"><i data-lucide="image" aria-hidden="true"></i></a></div></article>
-  `).join('');
+  container.innerHTML = state.evidencias.map((item) => {
+    const status = item.baixa?.status === 'CONFIRMADA' ? 'Baixa confirmada' : item.baixa?.status === 'ERRO' ? 'Aguardando sincronização' : item.baixa?.status === 'PROCESSANDO' ? 'Sincronizando baixa' : 'Evidência salva';
+    const acao = item.baixa?.status === 'CONFIRMADA' ? '' : `<button class="icon-button sync-evidence" type="button" data-id="${escapeHtml(item.id)}" title="Sincronizar baixa"><i data-lucide="refresh-cw" aria-hidden="true"></i></button>`;
+    return `<article class="history-row"><div><strong>Pedido ${escapeHtml(item.pedido)}</strong><span>OC ${escapeHtml(item.oc)} · ${formatDateTime(item.criadoEm)} · Entrega ${escapeHtml(item.dataEntrega || '-')}</span></div><div class="history-row__location"><i data-lucide="map-pin" aria-hidden="true"></i><span>${Number(item.latitude).toFixed(5)}, ${Number(item.longitude).toFixed(5)}</span></div><div class="history-row__actions"><span class="badge ${item.baixa?.status === 'CONFIRMADA' ? 'badge--green' : 'badge--amber'}">${status}</span>${acao}<a class="icon-button" href="/api/evidencias/${item.id}/arquivo/entrega" target="_blank" rel="noreferrer" title="Abrir foto da entrega"><i data-lucide="image" aria-hidden="true"></i></a></div></article>`;
+  }).join('');
   window.lucide?.createIcons();
 }
 
@@ -453,6 +477,26 @@ document.addEventListener('click', (event) => {
       console.error(erro);
       showToast('Não foi possível abrir o registro da evidência.', 'error');
     }
+    return;
+  }
+  const syncButton = target?.closest('.sync-evidence');
+  if (syncButton) {
+    const evidencia = state.evidencias.find((item) => item.id === syncButton.dataset.id);
+    if (!evidencia || evidencia.baixa?.status === 'CONFIRMADA') return;
+    if (!window.confirm(`Confirmar a entrega do pedido ${evidencia.pedido} e solicitar a baixa no Sankhya?`)) return;
+    syncButton.disabled = true;
+    syncButton.innerHTML = '<span class="spinner spinner--small"></span>';
+    fetch(`/api/evidencias/${encodeURIComponent(evidencia.id)}/baixa`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataEntrega: evidencia.dataEntrega }) })
+      .then(async (resposta) => {
+        const data = await resposta.json();
+        if (!resposta.ok) throw new Error(data.erro || 'Não foi possível confirmar a baixa.');
+        const indice = state.evidencias.findIndex((item) => item.id === evidencia.id);
+        if (indice >= 0) state.evidencias[indice] = data;
+        renderEvidenceHistory();
+        showToast('Baixa confirmada no Sankhya.', 'success');
+      })
+      .catch((erro) => showToast(erro.message, 'error'))
+      .finally(() => { if (document.body.contains(syncButton)) { syncButton.disabled = false; } });
     return;
   }
   const button = target?.closest('.detail-toggle');

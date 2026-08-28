@@ -8,7 +8,8 @@
 - Captura de foto da nota e da entrega usando câmera ao vivo ou galeria do dispositivo.
 - Assinatura desenhada no próprio aparelho.
 - Solicitação de GPS somente quando o motorista aciona o botão de localização.
-- Registro local de evidência em `app/data/evidencias`, separado de qualquer baixa ou confirmação no Sankhya.
+- Registro local de evidência em `app/data/evidencias`, salvo antes da confirmação da entrega.
+- Baixa de entrega pela ação oficial `ActionButtonsSP.executeJava`, com retry e confirmação posterior por consulta.
 - Histórico das evidências registradas no piloto.
 - Manifesto e service worker para instalação como aplicativo no navegador móvel.
 
@@ -16,9 +17,16 @@
 
 O fluxo foi adaptado a partir dos padrões existentes em `C:\Users\tigtm\Projetos\marratransportes`: câmera nativa/web com fallback para `input type=file`, GPS solicitado no momento da entrega, assinatura em canvas e login protegido no servidor. Nenhuma credencial, banco PostgreSQL ou rota de gravação do projeto Marra foi copiada.
 
-## Limite operacional importante
+## Limites operacionais importantes
 
-O endpoint `POST /api/evidencias` salva arquivos somente no piloto local. Ele não confirma pedido, não baixa estoque, não envia ordem ao WMS e não executa `COMMIT` no Sankhya. A próxima etapa, depois da homologação com a logística, será desenhar uma integração de escrita separada, com regra de idempotência, trilha de auditoria e plano de reversão.
+O endpoint `POST /api/evidencias` salva os arquivos no piloto local. A baixa
+oficial só é chamada por `POST /api/evidencias/:id/baixa`, após validar o vínculo
+do motorista e a situação da carga. O app não executa `INSERT`, `UPDATE` ou
+`DELETE` por SQL, não envia comandos livres ao navegador e não realiza baixa de
+devolução ou de não-entrega neste fluxo.
+
+Durante a homologação, mantenha `SANKHYA_BAIXA_ATIVA=false`. Depois de validar
+o proxy de serviços e o pedido de teste, habilite a flag no ambiente do servidor.
 
 ## Execução
 
