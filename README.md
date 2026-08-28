@@ -45,6 +45,8 @@ Para habilitar a baixa, configure `SANKHYA_BAIXA_ATIVA=true` somente após
 homologar a integração. O caminho recomendado é configurar um proxy interno de
 serviços em `SANKHYA_ACTION_PROXY_URL`, aceitando somente a ação
 `ActionButtonsSP.executeJava` e autenticado por `SANKHYA_ACTION_PROXY_TOKEN`.
+No `BancoDeDadosSankhya`, esse endpoint é `/service` e o token deve coincidir
+com o `API_TOKEN` do proxy.
 
 Em uma instalação no mesmo servidor do `sankhya-mcp`, também é possível usar o
 gateway diretamente com `SANKHYA_CLIENT_ID`, `SANKHYA_CLIENT_SECRET` e
