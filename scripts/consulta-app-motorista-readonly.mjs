@@ -164,7 +164,7 @@ WHERE O.CODEMP = ${codigoEmpresa}
   AND O.CODPARCMOTORISTA = ${codigoMotorista}
   AND O.SITUACAO = 'A'
   AND O.ENVIOWMS = 'N'
-  AND C.STATUSNOTA = 'A'
+  AND C.STATUSNOTA IN ('A', 'L')
   AND C.PENDENTE = 'S'${filtroOrdem}
 ORDER BY
     O.ORDEMCARGA,

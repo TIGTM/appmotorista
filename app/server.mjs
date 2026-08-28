@@ -441,7 +441,7 @@ async function atender(req, res) {
       if (String(registroAntes.situacaoOc) !== 'A' || String(registroAntes.envioWms) !== 'N') {
         return responderErro(res, 409, 'A carga não está aberta e fora do WMS para receber esta baixa.');
       }
-      if (String(registroAntes.statusNota) !== 'A' || String(registroAntes.pendente) !== 'S') {
+      if (!['A', 'L'].includes(String(registroAntes.statusNota)) || String(registroAntes.pendente) !== 'S') {
         return responderErro(res, 409, 'O pedido não está pendente para baixa de entrega.');
       }
 
