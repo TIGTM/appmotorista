@@ -121,9 +121,14 @@ async function obterToken() {
 }
 
 async function executarViaProxy(requestBody) {
+  // Lê a credencial no momento da ação: o servidor principal conclui o
+  // carregamento do .env depois dos imports ESM.
+  const proxyUrl = String(process.env.SANKHYA_ACTION_PROXY_URL || PROXY_URL).trim();
+  const proxyToken = String(process.env.SANKHYA_ACTION_PROXY_TOKEN || PROXY_TOKEN).trim();
+  if (!proxyToken) throw new Error('A credencial do proxy de baixa não está configurada no servidor.');
   const headers = { 'Content-Type': 'application/json' };
-  if (PROXY_TOKEN) headers['x-api-key'] = PROXY_TOKEN;
-  const resposta = await fetch(PROXY_URL, {
+  headers['x-api-key'] = proxyToken;
+  const resposta = await fetch(proxyUrl, {
     method: 'POST',
     headers,
     body: JSON.stringify({
