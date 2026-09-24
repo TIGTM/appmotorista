@@ -13,16 +13,18 @@ test('monta a mesma acao de entrega usada por Ordens de Carga', () => {
       { type: 'S', paramName: 'ENTREGA', $: '2' },
       { type: 'D', paramName: 'DTENTREGA', $: '28/08/2026' },
     ] },
+    rows: { row: [
+      {
+        master: 'S',
+        entityName: 'OrdemCarga',
+        field: [
+          { fieldName: 'CODEMP', $: '2' },
+          { fieldName: 'ORDEMCARGA', $: '460' },
+        ],
+      },
+      { field: [{ fieldName: 'NUNOTA', $: '87522' }] },
+    ] },
   });
-  assert.deepEqual(body.rows.row[0], {
-    master: 'S',
-    entityName: 'OrdemCarga',
-    field: [
-      { fieldName: 'CODEMP', $: '2' },
-      { fieldName: 'ORDEMCARGA', $: '460' },
-    ],
-  });
-  assert.deepEqual(body.rows.row[1], { field: [{ fieldName: 'NUNOTA', $: '87522' }] });
 });
 
 test('rejeita data de entrega inexistente', () => {

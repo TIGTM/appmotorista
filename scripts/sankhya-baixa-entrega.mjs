@@ -69,19 +69,19 @@ export function montarRequisicaoBaixa({ empresa, oc, pedido, dataEntrega }) {
           { type: 'D', paramName: 'DTENTREGA', $: dataEntregaValida(dataEntrega) },
         ],
       },
-    },
-    rows: {
-      row: [
-        {
-          master: 'S',
-          entityName: 'OrdemCarga',
-          field: [
-            { fieldName: 'CODEMP', $: String(inteiroPositivo('Empresa', empresa)) },
-            { fieldName: 'ORDEMCARGA', $: String(inteiroPositivo('OC', oc)) },
-          ],
-        },
-        { field: [{ fieldName: 'NUNOTA', $: String(inteiroPositivo('Pedido', pedido)) }] },
-      ],
+      rows: {
+        row: [
+          {
+            master: 'S',
+            entityName: 'OrdemCarga',
+            field: [
+              { fieldName: 'CODEMP', $: String(inteiroPositivo('Empresa', empresa)) },
+              { fieldName: 'ORDEMCARGA', $: String(inteiroPositivo('OC', oc)) },
+            ],
+          },
+          { field: [{ fieldName: 'NUNOTA', $: String(inteiroPositivo('Nota', pedido)) }] },
+        ],
+      },
     },
   };
 }
