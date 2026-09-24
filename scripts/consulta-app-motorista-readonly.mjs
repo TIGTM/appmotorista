@@ -178,8 +178,7 @@ WHERE O.CODEMP = ${codigoEmpresa}
   AND ${campoResponsavel} = ${codigoMotorista}
   AND O.SITUACAO = 'A'
   AND O.ENVIOWMS = 'N'
-  AND C.STATUSNOTA IN ('A', 'L')
-  AND C.PENDENTE = 'S'${filtroOrdem}
+  AND C.STATUSNOTA IN ('A', 'L')${filtroOrdem}
 ORDER BY
     O.ORDEMCARGA,
     C.SEQCARGA,
@@ -267,7 +266,7 @@ ORDER BY
       ordemCarga: ordemCarga,
       apenasCargasAbertas: true,
       apenasNaoEnviadasWms: true,
-      apenasPedidosPendentes: true,
+      incluiPedidosLiberados: true,
     },
     cargas: [...cargasPorCodigo.values()],
   };
