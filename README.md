@@ -29,7 +29,7 @@ navegador.
 
 ## Execucao local
 
-Defina `APP_DRIVER_USER`, `APP_DRIVER_PASSWORD`, `APP_DRIVER_CODPARC` e `APP_DRIVER_NOME` no ambiente e execute:
+Defina `APP_DRIVER_USER`, `APP_DRIVER_PASSWORD`, `APP_DRIVER_CODPARC`, `APP_DRIVER_NOME`, `APP_DRIVER_CODEMP` e `APP_DRIVER_VINCULO` no ambiente e execute. O vínculo aceita `motorista` ou `transportadora` e determina em qual campo da ordem de carga o aplicativo fará a atribuição.
 
 ```powershell
 $env:APP_DRIVER_PASSWORD = 'senha-local'

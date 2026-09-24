@@ -82,9 +82,23 @@ function limpar(valor) {
   return typeof valor === 'string' ? valor.trim() : valor;
 }
 
-export async function consultarCargas({ empresa = 2, motorista = 41850, oc = null } = {}) {
+export function normalizarVinculo(vinculo = 'motorista') {
+  const valor = String(vinculo).trim().toLowerCase();
+  if (valor !== 'motorista' && valor !== 'transportadora') {
+    throw new Error('O vínculo deve ser motorista ou transportadora.');
+  }
+  return valor;
+}
+
+function campoVinculo(vinculo) {
+  return vinculo === 'transportadora' ? 'O.CODPARCTRANSP' : 'O.CODPARCMOTORISTA';
+}
+
+export async function consultarCargas({ empresa = 2, motorista = 41850, vinculo = 'motorista', oc = null } = {}) {
   const codigoEmpresa = inteiroPositivo('empresa', empresa);
   const codigoMotorista = inteiroPositivo('motorista', motorista);
+  const tipoVinculo = normalizarVinculo(vinculo);
+  const campoResponsavel = campoVinculo(tipoVinculo);
   const ordemCarga = inteiroOpcional('oc', oc);
   const filtroOrdem = ordemCarga === null
     ? ''
@@ -148,7 +162,7 @@ JOIN SANKHYA.TGFPRO PRO
   ON PRO.CODPROD = I.CODPROD
 JOIN SANKHYA.TGFPAR PAR
   ON PAR.CODPARC = C.CODPARC
-JOIN SANKHYA.TGFPAR MOTOR
+LEFT JOIN SANKHYA.TGFPAR MOTOR
   ON MOTOR.CODPARC = O.CODPARCMOTORISTA
 LEFT JOIN SANKHYA.TGFPAR TRANSP
   ON TRANSP.CODPARC = O.CODPARCTRANSP
@@ -161,7 +175,7 @@ LEFT JOIN SANKHYA.TSICID CID
 LEFT JOIN SANKHYA.TSIUFS UFS
   ON UFS.CODUF = CID.UF
 WHERE O.CODEMP = ${codigoEmpresa}
-  AND O.CODPARCMOTORISTA = ${codigoMotorista}
+  AND ${campoResponsavel} = ${codigoMotorista}
   AND O.SITUACAO = 'A'
   AND O.ENVIOWMS = 'N'
   AND C.STATUSNOTA IN ('A', 'L')
@@ -249,6 +263,7 @@ ORDER BY
     filtro: {
       empresa: codigoEmpresa,
       motorista: codigoMotorista,
+      vinculo: tipoVinculo,
       ordemCarga: ordemCarga,
       apenasCargasAbertas: true,
       apenasNaoEnviadasWms: true,
@@ -263,9 +278,11 @@ ORDER BY
  * filtros de pedido aberto. Isso permite validar a baixa e confirmar o
  * resultado mesmo depois que o Sankhya fecha o pedido.
  */
-export async function consultarPedidoEntrega({ empresa, motorista, oc, pedido } = {}) {
+export async function consultarPedidoEntrega({ empresa, motorista, vinculo = 'motorista', oc, pedido } = {}) {
   const codigoEmpresa = inteiroPositivo('empresa', empresa);
   const codigoMotorista = inteiroPositivo('motorista', motorista);
+  const tipoVinculo = normalizarVinculo(vinculo);
+  const campoResponsavel = campoVinculo(tipoVinculo);
   const ordemCarga = inteiroPositivo('oc', oc);
   const numeroPedido = inteiroPositivo('pedido', pedido);
   const sql = `
@@ -286,7 +303,7 @@ JOIN SANKHYA.TGFCAB C
   ON C.ORDEMCARGA = O.ORDEMCARGA
  AND C.CODEMP = O.CODEMP
 WHERE O.CODEMP = ${codigoEmpresa}
-  AND O.CODPARCMOTORISTA = ${codigoMotorista}
+  AND ${campoResponsavel} = ${codigoMotorista}
   AND O.ORDEMCARGA = ${ordemCarga}
   AND C.NUNOTA = ${numeroPedido};
 `;

@@ -45,6 +45,7 @@ const pilotDriver = {
   nome: String(process.env.APP_DRIVER_NOME || 'SILAS HENRIQUE DE OLIVEIRA').trim(),
   empresa: Number(process.env.APP_DRIVER_CODEMP || 2),
   empresaNome: String(process.env.APP_DRIVER_EMPRESA || 'Industria - GTM Beneficiadora').trim(),
+  vinculo: String(process.env.APP_DRIVER_VINCULO || 'motorista').trim().toLowerCase(),
 };
 
 const contentTypes = {
@@ -315,6 +316,7 @@ async function atender(req, res) {
       const dados = await consultarCargasComRenovacao({
         empresa: sessao.empresa,
         motorista: sessao.id,
+        vinculo: sessao.vinculo,
         oc: url.searchParams.get('oc') || null,
       });
       return responderJson(res, 200, dados);
@@ -416,6 +418,7 @@ async function atender(req, res) {
       const registroAntes = await consultarPedidoEntrega({
         empresa: sessao.empresa,
         motorista: sessao.id,
+        vinculo: sessao.vinculo,
         oc: evidencia.oc,
         pedido: evidencia.pedido,
       });
@@ -463,6 +466,7 @@ async function atender(req, res) {
       const registroDepois = await consultarPedidoEntrega({
         empresa: sessao.empresa,
         motorista: sessao.id,
+        vinculo: sessao.vinculo,
         oc: evidencia.oc,
         pedido: evidencia.pedido,
       });
