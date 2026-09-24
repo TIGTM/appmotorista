@@ -1,4 +1,4 @@
-const CACHE = 'gtm-entregas-shell-v4';
+const CACHE = 'gtm-entregas-shell-v5';
 const SHELL = ['/', '/styles.css', '/app.js?v=5', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
