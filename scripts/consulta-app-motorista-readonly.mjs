@@ -118,6 +118,7 @@ SELECT
     O.HORASAIDA,
     O.SEQCARGA AS SEQ_OC,
     C.NUNOTA,
+    C.NUMNOTA,
     C.CODPARC,
     PAR.NOMEPARC AS CLIENTE,
     PAR.CEP,
@@ -133,6 +134,7 @@ SELECT
     ADR.NOMEEND AS LOGRADOURO,
     C.DTNEG,
     C.STATUSNOTA,
+    C.STATUSNFE,
     C.PENDENTE,
     C.AD_DTENTREGA,
     C.AD_SITENTREGUE,
@@ -178,7 +180,8 @@ WHERE O.CODEMP = ${codigoEmpresa}
   AND ${campoResponsavel} = ${codigoMotorista}
   AND O.SITUACAO = 'A'
   AND O.ENVIOWMS = 'N'
-  AND C.STATUSNOTA IN ('A', 'L')${filtroOrdem}
+  AND C.STATUSNOTA IN ('A', 'L')
+  AND C.STATUSNFE = 'A'${filtroOrdem}
 ORDER BY
     O.ORDEMCARGA,
     C.SEQCARGA,
@@ -215,6 +218,7 @@ ORDER BY
     if (!pedido) {
       pedido = {
         numeroUnico: linha.NUNOTA,
+        numeroNota: linha.NUMNOTA,
         cliente: {
           codigo: linha.CODPARC,
           nome: linha.CLIENTE,
@@ -230,6 +234,7 @@ ORDER BY
         },
         dataNegociacao: linha.DTNEG,
         statusNota: linha.STATUSNOTA,
+        statusNfe: linha.STATUSNFE,
         pendente: linha.PENDENTE,
         dataEntrega: linha.AD_DTENTREGA,
         statusEntrega: linha.AD_SITENTREGUE,
@@ -292,7 +297,9 @@ SELECT TOP 1
     O.ENVIOWMS,
     O.CODPARCMOTORISTA,
     C.NUNOTA,
+    C.NUMNOTA,
     C.STATUSNOTA,
+    C.STATUSNFE,
     C.PENDENTE,
     C.AD_DTENTREGA,
     C.AD_SITENTREGUE,
@@ -319,7 +326,9 @@ WHERE O.CODEMP = ${codigoEmpresa}
     envioWms: linha.ENVIOWMS,
     motorista: linha.CODPARCMOTORISTA,
     pedido: linha.NUNOTA,
+    numeroNota: linha.NUMNOTA,
     statusNota: linha.STATUSNOTA,
+    statusNfe: linha.STATUSNFE,
     pendente: linha.PENDENTE,
     dataEntrega: linha.AD_DTENTREGA,
     statusEntrega: linha.AD_SITENTREGUE,

@@ -350,7 +350,7 @@ async function atender(req, res) {
       const pedido = limparTexto(body.pedido, 30);
       const dataEntrega = limparTexto(body.dataEntrega || dataHojeLocal(), 10);
       dataEntregaValida(dataEntrega);
-      if (!oc || !pedido) throw new Error('Informe a ordem de carga e o pedido.');
+      if (!oc || !pedido) throw new Error('Informe a ordem de carga e a nota.');
       if (!body.fotoNota || !body.fotoEntrega || !body.assinatura) throw new Error('Foto da nota, foto da entrega e assinatura são obrigatórias.');
 
       const id = crypto.randomUUID();
@@ -408,7 +408,7 @@ async function atender(req, res) {
     try {
       dataEntregaValida(dataEntrega);
       inteiroPositivo(evidencia.oc, 'Ordem de carga');
-      inteiroPositivo(evidencia.pedido, 'Pedido');
+      inteiroPositivo(evidencia.pedido, 'Nota');
     } catch (erro) {
       return responderErro(res, 400, erro.message);
     }
@@ -422,7 +422,7 @@ async function atender(req, res) {
         oc: evidencia.oc,
         pedido: evidencia.pedido,
       });
-      if (!registroAntes) return responderErro(res, 409, 'O pedido não está vinculado à carga deste motorista.');
+      if (!registroAntes) return responderErro(res, 409, 'A nota não está vinculada a esta ordem de carga.');
 
       // Se a tela do Sankhya já concluiu a entrega, apenas sincroniza o
       // comprovante local. Isso torna o retry seguro e evita duplicidade.
@@ -444,8 +444,8 @@ async function atender(req, res) {
       if (String(registroAntes.situacaoOc) !== 'A' || String(registroAntes.envioWms) !== 'N') {
         return responderErro(res, 409, 'A carga não está aberta e fora do WMS para receber esta baixa.');
       }
-      if (!['A', 'L'].includes(String(registroAntes.statusNota)) || String(registroAntes.pendente) !== 'S') {
-        return responderErro(res, 409, 'O pedido não está pendente para baixa de entrega.');
+      if (!['A', 'L'].includes(String(registroAntes.statusNota)) || String(registroAntes.statusNfe) !== 'A') {
+        return responderErro(res, 409, 'A nota não está aprovada para baixa de entrega.');
       }
 
       evidencia.status = 'BAIXA_PROCESSANDO';
@@ -497,7 +497,7 @@ async function atender(req, res) {
       };
       local.evidencias[local.indice] = evidencia;
       await gravarEvidencias(local.evidencias).catch(() => {});
-      console.error(`[baixa] falha OC ${evidencia.oc} pedido ${evidencia.pedido}:`, erro.message);
+      console.error(`[baixa] falha OC ${evidencia.oc} nota ${evidencia.pedido}:`, erro.message);
       return responderErro(res, 502, 'A evidência foi preservada, mas não foi possível confirmar a baixa. Tente sincronizar novamente.');
     } finally {
       baixasEmAndamento.delete(id);

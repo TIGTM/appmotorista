@@ -55,6 +55,12 @@ function addressLine(endereco) {
 
 function allOrders(data) { return (data?.cargas || []).flatMap((carga) => carga.pedidos || []); }
 
+function descricaoStatusEntrega(status) {
+  if (String(status) === '2') return 'Entregue';
+  if (String(status) === '1') return 'Não entregue';
+  return 'Aguardando entrega';
+}
+
 function showToast(message, type = 'success') {
   const item = document.createElement('div');
   item.className = `toast toast--${type}`;
@@ -100,6 +106,7 @@ function renderMetrics(data) {
 
 function renderOrder(pedido, carga) {
   const detailId = `detail-${pedido.numeroUnico}`;
+  const numeroExibicao = pedido.numeroNota || pedido.numeroUnico;
   const items = (pedido.itens || []).map((item) => `
     <tr>
       <td><strong>${escapeHtml(item.codigoProduto)}</strong><br>${escapeHtml(item.descricao || 'Produto sem descrição')}</td>
@@ -108,11 +115,11 @@ function renderOrder(pedido, carga) {
       <td>${formatMoney(item.valorTotal)}</td>
     </tr>
   `).join('');
-  const pedidoData = encodeURIComponent(JSON.stringify({ numeroUnico: pedido.numeroUnico, cliente: pedido.cliente?.nome || '' }));
+  const pedidoData = encodeURIComponent(JSON.stringify({ numeroUnico: pedido.numeroUnico, numeroNota: pedido.numeroNota, cliente: pedido.cliente?.nome || '' }));
 
   return `
     <article class="order-row">
-      <div class="order-row__identity"><h3>Pedido ${escapeHtml(pedido.numeroUnico)}</h3><p>${escapeHtml(pedido.cliente?.nome || 'Cliente não informado')}</p></div>
+      <div class="order-row__identity"><h3>NF-e ${escapeHtml(numeroExibicao)}</h3><p>Nro. único ${escapeHtml(pedido.numeroUnico)} · ${escapeHtml(pedido.cliente?.nome || 'Cliente não informado')}</p></div>
       <div class="order-row__address"><strong>Entrega</strong>${addressLine(pedido.cliente?.endereco)}</div>
       <div class="order-row__action">
         <div class="order-row__total"><strong>${formatMoney(pedido.valorNota)}</strong>${formatNumber(pedido.pesoBruto)} kg bruto</div>
@@ -120,8 +127,8 @@ function renderOrder(pedido, carga) {
       </div>
       <div class="order-detail" id="${detailId}">
         <div class="order-detail__grid">
-          <div class="detail-block"><span class="detail-block__label">Itens do pedido</span><table class="items-table"><thead><tr><th>Produto</th><th>Qtd.</th><th>Peso</th><th>Total</th></tr></thead><tbody>${items || '<tr><td colspan="4">Nenhum item localizado.</td></tr>'}</tbody></table></div>
-          <div class="detail-block"><span class="detail-block__label">Controle da entrega</span><p>Situação do pedido: <strong>${pedido.pendente === 'S' ? 'Pendente' : 'Disponível'}</strong></p><p>Origem do estoque: <strong>${escapeHtml(pedido.itens?.[0]?.localOrigem || 'Não informado')}</strong></p><div class="detail-footer"><button class="button button--primary evidence-open" type="button" data-oc="${escapeHtml(carga.codigo)}" data-pedido="${pedidoData}"><i data-lucide="camera" aria-hidden="true"></i>Registrar evidência</button></div></div>
+          <div class="detail-block"><span class="detail-block__label">Itens da nota</span><table class="items-table"><thead><tr><th>Produto</th><th>Qtd.</th><th>Peso</th><th>Total</th></tr></thead><tbody>${items || '<tr><td colspan="4">Nenhum item localizado.</td></tr>'}</tbody></table></div>
+          <div class="detail-block"><span class="detail-block__label">Controle da entrega</span><p>Status NF-e: <strong>Aprovada</strong></p><p>Status da entrega: <strong>${descricaoStatusEntrega(pedido.statusEntrega)}</strong></p><p>Origem do estoque: <strong>${escapeHtml(pedido.itens?.[0]?.localOrigem || 'Não informado')}</strong></p><div class="detail-footer"><button class="button button--primary evidence-open" type="button" data-oc="${escapeHtml(carga.codigo)}" data-pedido="${pedidoData}"><i data-lucide="camera" aria-hidden="true"></i>Registrar evidência</button></div></div>
         </div>
       </div>
     </article>
@@ -136,7 +143,7 @@ function renderLoads(data) {
   }
   container.innerHTML = data.cargas.map((carga) => `
     <article class="load-card">
-      <header class="load-card__header"><div><div class="load-card__title"><h3>OC ${escapeHtml(carga.codigo)}</h3><span class="badge badge--green">Aberta</span></div><p class="load-card__sub">Saída: ${formatDate(carga.previsaoSaida)} · ${carga.pedidos.length} ${carga.pedidos.length === 1 ? 'pedido' : 'pedidos'}</p></div><div class="load-card__badges"><span class="badge badge--amber">Não enviado ao WMS</span><span class="badge badge--green">${escapeHtml(carga.transportadora || 'Transportadora não informada')}</span></div></header>
+      <header class="load-card__header"><div><div class="load-card__title"><h3>OC ${escapeHtml(carga.codigo)}</h3><span class="badge badge--green">Aberta</span></div><p class="load-card__sub">Saída: ${formatDate(carga.previsaoSaida)} · ${carga.pedidos.length} ${carga.pedidos.length === 1 ? 'nota aprovada' : 'notas aprovadas'}</p></div><div class="load-card__badges"><span class="badge badge--amber">Não enviado ao WMS</span><span class="badge badge--green">${escapeHtml(carga.transportadora || 'Transportadora não informada')}</span></div></header>
       <div class="orders">${carga.pedidos.map((pedido) => renderOrder(pedido, carga)).join('')}</div>
     </article>
   `).join('');
@@ -194,7 +201,8 @@ function openEvidence(oc, encodedPedido) {
   try { pedido = JSON.parse(decodeURIComponent(encodedPedido)); } catch { pedido = { numeroUnico: encodedPedido }; }
   resetEvidence();
   state.pedidoSelecionado = { oc, pedido };
-  $('#evidence-order-label').textContent = `OC ${oc} · Pedido ${pedido.numeroUnico}${pedido.cliente ? ` · ${pedido.cliente}` : ''}`;
+  const numeroExibicao = pedido.numeroNota || pedido.numeroUnico;
+  $('#evidence-order-label').textContent = `OC ${oc} · NF-e ${numeroExibicao} · Nro. único ${pedido.numeroUnico}${pedido.cliente ? ` · ${pedido.cliente}` : ''}`;
   $('#evidence-panel').classList.remove('is-hidden');
   $('#evidence-panel').scrollIntoView?.({ behavior: 'smooth', block: 'start' });
 }
@@ -339,7 +347,7 @@ function captureLocation() {
 
 async function salvarEvidencia(event) {
   event.preventDefault();
-  if (!state.pedidoSelecionado) return showToast('Selecione um pedido antes de salvar.', 'error');
+  if (!state.pedidoSelecionado) return showToast('Selecione uma nota antes de salvar.', 'error');
   if (!state.fotos.nota || !state.fotos.entrega || !state.assinaturaDesenhada || !state.coordenadas) return showToast('Complete o checklist antes de salvar.', 'error');
   if (!$('#evidence-date').value) return showToast('Informe a data da entrega.', 'error');
   if (!window.confirm('Confirmar a entrega e solicitar a baixa oficial no Sankhya?')) return;
@@ -400,7 +408,7 @@ function renderEvidenceHistory() {
   container.innerHTML = state.evidencias.map((item) => {
     const status = item.baixa?.status === 'CONFIRMADA' ? 'Baixa confirmada' : item.baixa?.status === 'ERRO' ? 'Aguardando sincronização' : item.baixa?.status === 'PROCESSANDO' ? 'Sincronizando baixa' : 'Evidência salva';
     const acao = item.baixa?.status === 'CONFIRMADA' ? '' : `<button class="icon-button sync-evidence" type="button" data-id="${escapeHtml(item.id)}" title="Sincronizar baixa"><i data-lucide="refresh-cw" aria-hidden="true"></i></button>`;
-    return `<article class="history-row"><div><strong>Pedido ${escapeHtml(item.pedido)}</strong><span>OC ${escapeHtml(item.oc)} · ${formatDateTime(item.criadoEm)} · Entrega ${escapeHtml(item.dataEntrega || '-')}</span></div><div class="history-row__location"><i data-lucide="map-pin" aria-hidden="true"></i><span>${Number(item.latitude).toFixed(5)}, ${Number(item.longitude).toFixed(5)}</span></div><div class="history-row__actions"><span class="badge ${item.baixa?.status === 'CONFIRMADA' ? 'badge--green' : 'badge--amber'}">${status}</span>${acao}<a class="icon-button" href="/api/evidencias/${item.id}/arquivo/entrega" target="_blank" rel="noreferrer" title="Abrir foto da entrega"><i data-lucide="image" aria-hidden="true"></i></a></div></article>`;
+    return `<article class="history-row"><div><strong>Nota ${escapeHtml(item.pedido)}</strong><span>OC ${escapeHtml(item.oc)} · ${formatDateTime(item.criadoEm)} · Entrega ${escapeHtml(item.dataEntrega || '-')}</span></div><div class="history-row__location"><i data-lucide="map-pin" aria-hidden="true"></i><span>${Number(item.latitude).toFixed(5)}, ${Number(item.longitude).toFixed(5)}</span></div><div class="history-row__actions"><span class="badge ${item.baixa?.status === 'CONFIRMADA' ? 'badge--green' : 'badge--amber'}">${status}</span>${acao}<a class="icon-button" href="/api/evidencias/${item.id}/arquivo/entrega" target="_blank" rel="noreferrer" title="Abrir foto da entrega"><i data-lucide="image" aria-hidden="true"></i></a></div></article>`;
   }).join('');
   window.lucide?.createIcons();
 }
@@ -483,7 +491,7 @@ document.addEventListener('click', (event) => {
   if (syncButton) {
     const evidencia = state.evidencias.find((item) => item.id === syncButton.dataset.id);
     if (!evidencia || evidencia.baixa?.status === 'CONFIRMADA') return;
-    if (!window.confirm(`Confirmar a entrega do pedido ${evidencia.pedido} e solicitar a baixa no Sankhya?`)) return;
+    if (!window.confirm(`Confirmar a entrega da nota ${evidencia.pedido} e solicitar a baixa no Sankhya?`)) return;
     syncButton.disabled = true;
     syncButton.innerHTML = '<span class="spinner spinner--small"></span>';
     fetch(`/api/evidencias/${encodeURIComponent(evidencia.id)}/baixa`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dataEntrega: evidencia.dataEntrega }) })
