@@ -37,14 +37,14 @@ const sessions = new Map();
 const baixaAtiva = String(process.env.SANKHYA_BAIXA_ATIVA || '').toLowerCase() === 'true';
 const baixasEmAndamento = new Set();
 
-// Credencial de desenvolvimento. Em produção, defina ambas as variáveis no ambiente.
+// Credenciais e identidade do piloto. Em produção, defina todas as variáveis no ambiente.
 const pilotUser = String(process.env.APP_DRIVER_USER || 'silas').trim().toLowerCase();
 const pilotPassword = String(process.env.APP_DRIVER_PASSWORD || '');
 const pilotDriver = {
-  id: 41850,
-  nome: 'SILAS HENRIQUE DE OLIVEIRA',
-  empresa: 2,
-  empresaNome: 'Industria - GTM Beneficiadora',
+  id: Number(process.env.APP_DRIVER_CODPARC || 41850),
+  nome: String(process.env.APP_DRIVER_NOME || 'SILAS HENRIQUE DE OLIVEIRA').trim(),
+  empresa: Number(process.env.APP_DRIVER_CODEMP || 2),
+  empresaNome: String(process.env.APP_DRIVER_EMPRESA || 'Industria - GTM Beneficiadora').trim(),
 };
 
 const contentTypes = {

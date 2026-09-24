@@ -29,7 +29,7 @@ navegador.
 
 ## Execucao local
 
-Defina `APP_DRIVER_PASSWORD` no ambiente e execute:
+Defina `APP_DRIVER_USER`, `APP_DRIVER_PASSWORD`, `APP_DRIVER_CODPARC` e `APP_DRIVER_NOME` no ambiente e execute:
 
 ```powershell
 $env:APP_DRIVER_PASSWORD = 'senha-local'
