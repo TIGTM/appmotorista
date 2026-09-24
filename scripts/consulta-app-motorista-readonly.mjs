@@ -73,8 +73,8 @@ function inteiroPositivo(nome, valor) {
   return numero;
 }
 
-function inteiroOpcional(nome, valor) {
-  if (valor === undefined) return null;
+export function inteiroOpcional(nome, valor) {
+  if (valor === undefined || valor === null || valor === '') return null;
   return inteiroPositivo(nome, valor);
 }
 
