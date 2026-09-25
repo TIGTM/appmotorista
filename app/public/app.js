@@ -523,6 +523,11 @@ $('#close-evidence-button').addEventListener('click', () => { $('#evidence-panel
 $('#evidence-form').addEventListener('submit', salvarEvidencia);
 $('#location-button').addEventListener('click', captureLocation);
 $('#capture-button').addEventListener('click', takeCameraPhoto);
+$('#choose-file-button').addEventListener('click', () => {
+  const input = $('#camera-file-input');
+  input.value = '';
+  input.click();
+});
 $('#camera-file-input').addEventListener('change', (event) => processCameraFile(event.target.files?.[0]));
 $('#close-camera').addEventListener('click', closeCamera);
 $$('[data-close-camera]').forEach((element) => element.addEventListener('click', closeCamera));

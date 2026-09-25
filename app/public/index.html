@@ -128,12 +128,12 @@
         <video id="camera-video" class="camera-video" autoplay playsinline muted></video>
         <canvas id="camera-canvas" class="is-hidden"></canvas>
         <p id="camera-status" class="camera-status">Autorize a câmera para continuar.</p>
-        <div class="modal__actions"><button id="capture-button" class="button button--primary" type="button"><i data-lucide="aperture" aria-hidden="true"></i>Tirar foto</button><label class="button button--quiet"><i data-lucide="image-up" aria-hidden="true"></i>Escolher arquivo<input id="camera-file-input" class="visually-hidden" type="file" accept="image/*" capture="environment"></label></div>
+        <div class="modal__actions"><button id="capture-button" class="button button--primary" type="button"><i data-lucide="aperture" aria-hidden="true"></i>Tirar foto</button><button id="choose-file-button" class="button button--quiet" type="button"><i data-lucide="paperclip" aria-hidden="true"></i>Anexar imagem</button><input id="camera-file-input" class="visually-hidden" type="file" accept="image/*"></div>
       </div>
     </div>
 
     <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-    <script src="/app.js?v=6" type="module"></script>
+    <script src="/app.js?v=7" type="module"></script>
   </body>
 </html>

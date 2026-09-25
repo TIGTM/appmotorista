@@ -1,5 +1,5 @@
-const CACHE = 'gtm-entregas-shell-v6';
-const SHELL = ['/', '/styles.css', '/app.js?v=6', '/manifest.webmanifest'];
+const CACHE = 'gtm-entregas-shell-v7';
+const SHELL = ['/', '/styles.css', '/app.js?v=7', '/manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)).then(() => self.skipWaiting()));
