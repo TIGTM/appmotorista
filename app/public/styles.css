@@ -312,7 +312,8 @@ h3 { margin-bottom: 4px; font-size: 16px; line-height: 1.2; }
 .login-trust svg { width: 17px; height: 17px; flex: 0 0 auto; }
 .login-card { padding: 28px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; box-shadow: var(--shadow); }
 .login-card__heading { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; }
-.brand__mark--small { width: 38px; height: 38px; }
+.login-card__logo { width: 76px; height: 42px; display: grid; place-items: center; flex: 0 0 auto; padding: 6px 8px; border-radius: 6px; background: var(--green); }
+.login-card__logo img { width: 100%; height: 100%; object-fit: contain; }
 .login-card h2 { font-size: 23px; }
 .login-card .eyebrow { margin-bottom: 4px; }
 .field--stacked { display: block; margin-bottom: 16px; }
