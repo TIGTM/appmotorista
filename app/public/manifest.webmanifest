@@ -4,7 +4,7 @@
   "lang": "pt-BR",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f4f7f4",
-  "theme_color": "#17745a",
+  "background_color": "#f4f6fa",
+  "theme_color": "#1B3B6F",
   "description": "Aplicativo operacional de cargas e evidências de entrega da GTM."
 }

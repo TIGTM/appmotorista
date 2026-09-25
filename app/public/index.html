@@ -3,20 +3,20 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#17745a">
+    <meta name="theme-color" content="#1B3B6F">
     <meta name="description" content="Aplicativo operacional de cargas e evidências de entrega da GTM.">
     <link rel="manifest" href="/manifest.webmanifest">
     <title>GTM Entregas</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css?v=8">
   </head>
   <body>
     <div id="login-view" class="login-view">
       <header class="topbar">
         <div class="topbar__inner">
-          <a class="brand" href="/" aria-label="GTM Entregas">
-            <span class="brand__mark">G</span>
-            <span><strong>GTM</strong><small>ENTREGAS</small></span>
-          </a>
+          <a class="brand" href="/" aria-label="GTM Alimentos Entregas"><img class="brand__logo" src="/assets/gtm-alimentos-logo-branca.svg" alt="GTM Alimentos"><span class="brand__section">Entregas</span></a>
           <span class="topbar__status"><span class="status-dot"></span>Piloto operacional</span>
         </div>
       </header>
@@ -44,10 +44,7 @@
     <div id="app-view" class="app-view is-hidden">
       <header class="topbar">
         <div class="topbar__inner">
-          <a class="brand" href="/" aria-label="GTM Entregas">
-            <span class="brand__mark">G</span>
-            <span><strong>GTM</strong><small>ENTREGAS</small></span>
-          </a>
+          <a class="brand" href="/" aria-label="GTM Alimentos Entregas"><img class="brand__logo" src="/assets/gtm-alimentos-logo-branca.svg" alt="GTM Alimentos"><span class="brand__section">Entregas</span></a>
           <div class="topbar__actions">
             <span class="topbar__status"><span class="status-dot"></span><span id="session-label">Motorista autenticado</span></span>
             <button id="logout-button" class="button button--quiet" type="button" title="Sair do aplicativo"><i data-lucide="log-out" aria-hidden="true"></i><span>Sair</span></button>
@@ -134,6 +131,6 @@
 
     <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-    <script src="/app.js?v=7" type="module"></script>
+    <script src="/app.js?v=8" type="module"></script>
   </body>
 </html>

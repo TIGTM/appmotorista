@@ -3,14 +3,17 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#17745a">
+    <meta name="theme-color" content="#1B3B6F">
     <meta name="description" content="Central administrativa de entregas e evidências da GTM.">
     <title>GTM Entregas | Logística</title>
-    <link rel="stylesheet" href="/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/styles.css?v=8">
   </head>
   <body class="admin-body">
     <div id="admin-login" class="login-view">
-      <header class="topbar"><div class="topbar__inner"><a class="brand" href="/" aria-label="GTM Entregas"><span class="brand__mark">G</span><span><strong>GTM</strong><small>ENTREGAS</small></span></a><span class="topbar__status"><span class="status-dot"></span>Logística</span></div></header>
+      <header class="topbar"><div class="topbar__inner"><a class="brand" href="/" aria-label="GTM Alimentos Logística"><img class="brand__logo" src="/assets/gtm-alimentos-logo-branca.svg" alt="GTM Alimentos"><span class="brand__section">Logística</span></a><span class="topbar__status"><span class="status-dot"></span>Logística</span></div></header>
       <main class="login-shell">
         <section class="login-intro"><p class="eyebrow">CENTRAL OPERACIONAL</p><h1>Entregas acompanhadas em um só lugar.</h1><p>Consulte comprovantes, fotos, localização e o resultado da baixa registrada pelo motorista no Sankhya.</p><div class="login-trust"><i data-lucide="shield-check" aria-hidden="true"></i><span>Acesso exclusivo da equipe de logística.</span></div></section>
         <form id="admin-login-form" class="login-card"><div class="login-card__heading"><span class="brand__mark brand__mark--small">G</span><div><p class="eyebrow">ACESSO ADMINISTRATIVO</p><h2>Entrar na central</h2></div></div><label class="field field--stacked"><span>Usuário</span><input id="admin-login-user" autocomplete="username" required></label><label class="field field--stacked"><span>Senha</span><input id="admin-login-password" type="password" autocomplete="current-password" required></label><p id="admin-login-error" class="form-error" role="alert"></p><button class="button button--primary button--full" type="submit"><i data-lucide="log-in" aria-hidden="true"></i>Entrar</button></form>
@@ -18,7 +21,7 @@
     </div>
 
     <div id="admin-app" class="app-view is-hidden">
-      <header class="topbar"><div class="topbar__inner"><a class="brand" href="/admin.html" aria-label="GTM Entregas Logística"><span class="brand__mark">G</span><span><strong>GTM</strong><small>LOGÍSTICA</small></span></a><div class="topbar__actions"><span class="topbar__status"><span class="status-dot"></span><span id="admin-session-label">Logística</span></span><button id="admin-refresh" class="button button--quiet" type="button" title="Atualizar dados"><i data-lucide="refresh-cw" aria-hidden="true"></i><span>Atualizar</span></button><button id="admin-logout" class="button button--quiet" type="button" title="Sair"><i data-lucide="log-out" aria-hidden="true"></i><span>Sair</span></button></div></div></header>
+      <header class="topbar"><div class="topbar__inner"><a class="brand" href="/admin.html" aria-label="GTM Alimentos Logística"><img class="brand__logo" src="/assets/gtm-alimentos-logo-branca.svg" alt="GTM Alimentos"><span class="brand__section">Logística</span></a><div class="topbar__actions"><span class="topbar__status"><span class="status-dot"></span><span id="admin-session-label">Logística</span></span><button id="admin-refresh" class="button button--quiet" type="button" title="Atualizar dados"><i data-lucide="refresh-cw" aria-hidden="true"></i><span>Atualizar</span></button><button id="admin-logout" class="button button--quiet" type="button" title="Sair"><i data-lucide="log-out" aria-hidden="true"></i><span>Sair</span></button></div></div></header>
       <main class="page-shell admin-shell">
         <section class="intro"><div><p class="eyebrow">CENTRAL OPERACIONAL</p><h1>Acompanhamento de entregas</h1><p class="intro__meta">Evidências, baixas e acessos dos motoristas.</p></div></section>
         <section class="metrics" aria-label="Resumo operacional"><div class="metric"><span class="metric__label">Motoristas ativos</span><strong class="metric__value" id="summary-drivers">-</strong></div><div class="metric"><span class="metric__label">Evidências</span><strong class="metric__value" id="summary-evidences">-</strong></div><div class="metric metric--accent"><span class="metric__label">Baixas pendentes</span><strong class="metric__value" id="summary-pending">-</strong></div><div class="metric metric--dark"><span class="metric__label">Baixas confirmadas</span><strong class="metric__value" id="summary-confirmed">-</strong></div></section>
@@ -35,6 +38,6 @@
     </div>
     <div id="admin-toast-stack" class="toast-stack" aria-live="polite"></div>
     <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
-    <script src="/admin.js?v=1" type="module"></script>
+    <script src="/admin.js?v=2" type="module"></script>
   </body>
 </html>
