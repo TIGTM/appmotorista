@@ -38,8 +38,8 @@ const sessions = new Map();
 const baixaAtiva = String(process.env.SANKHYA_BAIXA_ATIVA || '').toLowerCase() === 'true';
 const baixasEmAndamento = new Set();
 
-// Credenciais legadas do piloto. Elas servem apenas para criar a primeira conta
-// de motorista quando o cadastro persistente ainda estiver vazio.
+// Credenciais legadas servem apenas para criar a primeira conta de motorista
+// quando o cadastro persistente ainda estiver vazio.
 const pilotUser = String(process.env.APP_DRIVER_USER || 'silas').trim().toLowerCase();
 const pilotPassword = String(process.env.APP_DRIVER_PASSWORD || '');
 const pilotDriver = {
@@ -418,13 +418,13 @@ async function atender(req, res) {
     const sessao = sessaoUsuario(conta);
     const token = criarSessao(sessao);
     definirCookie(res, token);
-    return responderJson(res, 200, { ...sessao, motorista: sessao.perfil === 'motorista' ? sessao : null, ambiente: 'piloto operacional', baixaHabilitada: baixaAtiva });
+    return responderJson(res, 200, { ...sessao, motorista: sessao.perfil === 'motorista' ? sessao : null, ambiente: 'operacional', baixaHabilitada: baixaAtiva });
   }
 
   if (req.method === 'GET' && url.pathname === '/api/sessao') {
     const sessao = exigirSessao(req, res);
     if (!sessao) return;
-    return responderJson(res, 200, { ...sessao, motorista: sessao.perfil === 'motorista' ? sessao : null, ambiente: 'piloto operacional', baixaHabilitada: baixaAtiva });
+    return responderJson(res, 200, { ...sessao, motorista: sessao.perfil === 'motorista' ? sessao : null, ambiente: 'operacional', baixaHabilitada: baixaAtiva });
   }
 
   if (req.method === 'POST' && url.pathname === '/api/logout') {
@@ -730,5 +730,5 @@ const server = http.createServer((req, res) => {
 
 server.listen(port, '127.0.0.1', () => {
   console.log(`Aplicativo do motorista em http://127.0.0.1:${port}`);
-  console.log('Consulta Sankhya: somente leitura. Evidências: armazenamento local do piloto.');
+  console.log('Consulta Sankhya: consulta de cargas e baixa oficial habilitável pelo ambiente. Evidências: armazenamento local.');
 });

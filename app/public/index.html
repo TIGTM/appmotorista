@@ -17,7 +17,7 @@
       <header class="topbar">
         <div class="topbar__inner">
           <a class="brand" href="/" aria-label="GTM Alimentos Entregas"><img class="brand__logo" src="/gtm-alimentos-logo-branca.svg" alt="GTM Alimentos"><span class="brand__section">Entregas</span></a>
-          <span class="topbar__status"><span class="status-dot"></span>Piloto operacional</span>
+          <span class="topbar__status"><span class="status-dot"></span>Operação online</span>
         </div>
       </header>
       <main class="login-shell">
@@ -35,8 +35,8 @@
           <label class="field field--stacked"><span>Usuário</span><input id="login-user" autocomplete="username" required></label>
           <label class="field field--stacked"><span>Senha</span><input id="login-password" type="password" autocomplete="current-password" required></label>
           <p id="login-error" class="form-error" role="alert"></p>
-          <button class="button button--primary button--full" type="submit"><i data-lucide="log-in" aria-hidden="true"></i>Entrar</button>
-          <p class="login-card__note">Acesso de homologação local. As credenciais de produção serão definidas no servidor.</p>
+          <button class="button button--primary button--full" type="submit"><i data-lucide="log-in" aria-hidden="true"></i>Entrar como motorista</button>
+          <div class="login-card__admin-access"><span>Acesso da equipe interna</span><a class="button button--admin button--full" href="/admin.html"><i data-lucide="clipboard-list" aria-hidden="true"></i>Entrar na logística</a></div>
         </form>
       </main>
     </div>
@@ -110,7 +110,7 @@
         </section>
 
         <section class="content-section history-section" aria-labelledby="history-title">
-          <div class="section-heading"><div><p class="eyebrow">RASTREABILIDADE</p><h2 id="history-title">Evidências registradas no piloto</h2></div><span class="section-count" id="evidence-count">0 registros</span></div>
+          <div class="section-heading"><div><p class="eyebrow">RASTREABILIDADE</p><h2 id="history-title">Evidências registradas</h2></div><span class="section-count" id="evidence-count">0 registros</span></div>
           <div id="evidence-history" class="history-list" aria-live="polite"><div class="empty-state"><strong>Nenhuma evidência registrada</strong><span>As confirmações locais aparecerão aqui.</span></div></div>
         </section>
       </main>
