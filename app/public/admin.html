@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#17745a">
+    <meta name="description" content="Central administrativa de entregas e evidências da GTM.">
+    <title>GTM Entregas | Logística</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body class="admin-body">
+    <div id="admin-login" class="login-view">
+      <header class="topbar"><div class="topbar__inner"><a class="brand" href="/" aria-label="GTM Entregas"><span class="brand__mark">G</span><span><strong>GTM</strong><small>ENTREGAS</small></span></a><span class="topbar__status"><span class="status-dot"></span>Logística</span></div></header>
+      <main class="login-shell">
+        <section class="login-intro"><p class="eyebrow">CENTRAL OPERACIONAL</p><h1>Entregas acompanhadas em um só lugar.</h1><p>Consulte comprovantes, fotos, localização e o resultado da baixa registrada pelo motorista no Sankhya.</p><div class="login-trust"><i data-lucide="shield-check" aria-hidden="true"></i><span>Acesso exclusivo da equipe de logística.</span></div></section>
+        <form id="admin-login-form" class="login-card"><div class="login-card__heading"><span class="brand__mark brand__mark--small">G</span><div><p class="eyebrow">ACESSO ADMINISTRATIVO</p><h2>Entrar na central</h2></div></div><label class="field field--stacked"><span>Usuário</span><input id="admin-login-user" autocomplete="username" required></label><label class="field field--stacked"><span>Senha</span><input id="admin-login-password" type="password" autocomplete="current-password" required></label><p id="admin-login-error" class="form-error" role="alert"></p><button class="button button--primary button--full" type="submit"><i data-lucide="log-in" aria-hidden="true"></i>Entrar</button></form>
+      </main>
+    </div>
+
+    <div id="admin-app" class="app-view is-hidden">
+      <header class="topbar"><div class="topbar__inner"><a class="brand" href="/admin.html" aria-label="GTM Entregas Logística"><span class="brand__mark">G</span><span><strong>GTM</strong><small>LOGÍSTICA</small></span></a><div class="topbar__actions"><span class="topbar__status"><span class="status-dot"></span><span id="admin-session-label">Logística</span></span><button id="admin-refresh" class="button button--quiet" type="button" title="Atualizar dados"><i data-lucide="refresh-cw" aria-hidden="true"></i><span>Atualizar</span></button><button id="admin-logout" class="button button--quiet" type="button" title="Sair"><i data-lucide="log-out" aria-hidden="true"></i><span>Sair</span></button></div></div></header>
+      <main class="page-shell admin-shell">
+        <section class="intro"><div><p class="eyebrow">CENTRAL OPERACIONAL</p><h1>Acompanhamento de entregas</h1><p class="intro__meta">Evidências, baixas e acessos dos motoristas.</p></div></section>
+        <section class="metrics" aria-label="Resumo operacional"><div class="metric"><span class="metric__label">Motoristas ativos</span><strong class="metric__value" id="summary-drivers">-</strong></div><div class="metric"><span class="metric__label">Evidências</span><strong class="metric__value" id="summary-evidences">-</strong></div><div class="metric metric--accent"><span class="metric__label">Baixas pendentes</span><strong class="metric__value" id="summary-pending">-</strong></div><div class="metric metric--dark"><span class="metric__label">Baixas confirmadas</span><strong class="metric__value" id="summary-confirmed">-</strong></div></section>
+
+        <section class="admin-grid">
+          <section class="admin-panel" aria-labelledby="driver-form-title"><div class="section-heading"><div><p class="eyebrow">ACESSOS</p><h2 id="driver-form-title">Novo motorista</h2></div><button id="driver-form-reset" class="icon-button" type="button" title="Limpar formulário"><i data-lucide="rotate-ccw" aria-hidden="true"></i></button></div>
+            <form id="driver-form" class="admin-form"><input id="driver-id" type="hidden"><label class="field field--stacked"><span>Nome</span><input id="driver-name-input" maxlength="160" required></label><div class="admin-form__columns"><label class="field field--stacked"><span>Usuário</span><input id="driver-user-input" pattern="[A-Za-z0-9._-]{3,80}" maxlength="80" required></label><label class="field field--stacked"><span>Senha temporária</span><input id="driver-password-input" type="password" minlength="8" autocomplete="new-password" required></label></div><div class="admin-form__columns"><label class="field field--stacked"><span>Código do parceiro</span><input id="driver-partner-input" inputmode="numeric" required></label><label class="field field--stacked"><span>Empresa</span><input id="driver-company-input" inputmode="numeric" required></label></div><label class="field field--stacked"><span>Nome da empresa</span><input id="driver-company-name-input" maxlength="160" required></label><label class="field field--stacked"><span>Vínculo na OC</span><select id="driver-link-input"><option value="motorista">Motorista</option><option value="transportadora">Transportadora</option></select></label><label class="check-field"><input id="driver-active-input" type="checkbox" checked><span>Conta ativa</span></label><p id="driver-form-error" class="form-error" role="alert"></p><button id="driver-submit" class="button button--primary button--full" type="submit"><i data-lucide="user-plus" aria-hidden="true"></i>Cadastrar motorista</button></form>
+          </section>
+          <section class="admin-panel admin-panel--wide" aria-labelledby="drivers-title"><div class="section-heading"><div><p class="eyebrow">MOTORISTAS</p><h2 id="drivers-title">Acessos cadastrados</h2></div><span id="driver-count" class="section-count">0 motoristas</span></div><div id="drivers-list" class="driver-list"><div class="loading-state"><span class="spinner"></span><span>Carregando acessos...</span></div></div></section>
+        </section>
+
+        <section class="content-section admin-evidence-section" aria-labelledby="admin-evidences-title"><div class="section-heading"><div><p class="eyebrow">RASTREABILIDADE</p><h2 id="admin-evidences-title">Evidências e baixas</h2></div><span id="admin-evidence-count" class="section-count">0 registros</span></div><div class="admin-filters"><label class="field"><span>Motorista</span><select id="evidence-driver-filter"><option value="">Todos</option></select></label><label class="field"><span>OC</span><input id="evidence-oc-filter" inputmode="numeric" placeholder="Todas"></label><label class="field"><span>Status da baixa</span><select id="evidence-status-filter"><option value="">Todos</option><option value="CONFIRMADA">Confirmada</option><option value="PENDENTE">Pendente</option><option value="ERRO">Com erro</option><option value="PROCESSANDO">Processando</option></select></label><button id="evidence-filter-button" class="button button--primary" type="button"><i data-lucide="filter" aria-hidden="true"></i>Filtrar</button></div><div id="admin-evidences-list" class="admin-evidence-list"><div class="loading-state"><span class="spinner"></span><span>Carregando evidências...</span></div></div></section>
+      </main>
+    </div>
+    <div id="admin-toast-stack" class="toast-stack" aria-live="polite"></div>
+    <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+    <script src="/admin.js?v=1" type="module"></script>
+  </body>
+</html>

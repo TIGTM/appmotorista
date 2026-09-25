@@ -84,6 +84,7 @@ function showLogin() {
 }
 
 function showApp(session) {
+  if (session.perfil === 'admin') { window.location.assign('/admin.html'); return; }
   state.sessao = session;
   state.config = { baixaHabilitada: Boolean(session.baixaHabilitada) };
   $('#login-view').classList.add('is-hidden');
@@ -447,6 +448,7 @@ async function fazerLogin(event) {
     const resposta = await fetch('/api/login', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario: $('#login-user').value, senha: $('#login-password').value }) });
     const data = await resposta.json();
     if (!resposta.ok) throw new Error(data.erro || 'Não foi possível entrar.');
+    if (data.perfil === 'admin') { window.location.assign('/admin.html'); return; }
     showApp(data);
     await Promise.all([carregar(), carregarEvidencias()]);
     showToast(`Bem-vindo, ${data.motorista.nome.split(' ')[0]}.`, 'success');
@@ -460,6 +462,7 @@ async function restaurarSessao() {
     const resposta = await fetch('/api/sessao', { credentials: 'same-origin' });
     if (!resposta.ok) return;
     const data = await resposta.json();
+    if (data.perfil === 'admin') { window.location.assign('/admin.html'); return; }
     showApp(data);
     await Promise.all([carregar(), carregarEvidencias()]);
   } catch { showLogin(); }

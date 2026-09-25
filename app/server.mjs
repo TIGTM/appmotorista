@@ -31,13 +31,15 @@ const publicDir = path.join(__dirname, 'public');
 const dataDir = path.join(__dirname, 'data');
 const evidenceDir = path.join(dataDir, 'evidencias');
 const evidenceManifest = path.join(dataDir, 'evidencias.json');
+const usersManifest = path.join(dataDir, 'usuarios.json');
 const port = Number(process.env.PORT || 4173);
 const sessionMaxAge = 12 * 60 * 60;
 const sessions = new Map();
 const baixaAtiva = String(process.env.SANKHYA_BAIXA_ATIVA || '').toLowerCase() === 'true';
 const baixasEmAndamento = new Set();
 
-// Credenciais e identidade do piloto. Em produção, defina todas as variáveis no ambiente.
+// Credenciais legadas do piloto. Elas servem apenas para criar a primeira conta
+// de motorista quando o cadastro persistente ainda estiver vazio.
 const pilotUser = String(process.env.APP_DRIVER_USER || 'silas').trim().toLowerCase();
 const pilotPassword = String(process.env.APP_DRIVER_PASSWORD || '');
 const pilotDriver = {
@@ -46,6 +48,11 @@ const pilotDriver = {
   empresa: Number(process.env.APP_DRIVER_CODEMP || 2),
   empresaNome: String(process.env.APP_DRIVER_EMPRESA || 'Industria - GTM Beneficiadora').trim(),
   vinculo: String(process.env.APP_DRIVER_VINCULO || 'motorista').trim().toLowerCase(),
+};
+const adminBootstrap = {
+  usuario: String(process.env.APP_ADMIN_USER || '').trim().toLowerCase(),
+  senha: String(process.env.APP_ADMIN_PASSWORD || ''),
+  nome: String(process.env.APP_ADMIN_NOME || 'Logística GTM').trim(),
 };
 
 const contentTypes = {
@@ -92,9 +99,9 @@ function segredoIgual(a, b) {
   return left.length === right.length && crypto.timingSafeEqual(left, right);
 }
 
-function criarSessao() {
+function criarSessao(usuario) {
   const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, { ...pilotDriver, usuario: pilotUser, expiraEm: Date.now() + sessionMaxAge * 1000 });
+  sessions.set(token, { ...usuario, expiraEm: Date.now() + sessionMaxAge * 1000 });
   return token;
 }
 
@@ -112,6 +119,26 @@ function sessaoAtual(req) {
 function exigirSessao(req, res) {
   const sessao = sessaoAtual(req);
   if (!sessao) responderErro(res, 401, 'Faça login para acessar o aplicativo.');
+  return sessao;
+}
+
+function exigirAdmin(req, res) {
+  const sessao = exigirSessao(req, res);
+  if (!sessao) return null;
+  if (sessao.perfil !== 'admin') {
+    responderErro(res, 403, 'Acesso restrito à logística.');
+    return null;
+  }
+  return sessao;
+}
+
+function exigirMotorista(req, res) {
+  const sessao = exigirSessao(req, res);
+  if (!sessao) return null;
+  if (sessao.perfil !== 'motorista') {
+    responderErro(res, 403, 'Este recurso é exclusivo do motorista vinculado.');
+    return null;
+  }
   return sessao;
 }
 
@@ -178,9 +205,105 @@ async function gravarEvidencias(evidencias) {
   await fs.writeFile(evidenceManifest, JSON.stringify(evidencias, null, 2), 'utf8');
 }
 
+function criarHashSenha(senha, salt = crypto.randomBytes(16).toString('hex')) {
+  const hash = crypto.scryptSync(String(senha), salt, 64).toString('hex');
+  return `${salt}:${hash}`;
+}
+
+function conferirHashSenha(senha, hashArmazenado) {
+  const [salt, hash] = String(hashArmazenado || '').split(':');
+  if (!salt || !hash) return false;
+  const calculado = crypto.scryptSync(String(senha), salt, 64).toString('hex');
+  return segredoIgual(calculado, hash);
+}
+
+function usuarioPublico(usuario) {
+  const { senhaHash, ...publico } = usuario;
+  return publico;
+}
+
+function normalizarUsuarioCadastro(dados, existente = {}) {
+  const usuario = limparTexto(dados.usuario ?? existente.usuario, 80).toLowerCase();
+  const nome = limparTexto(dados.nome ?? existente.nome, 160);
+  const codparc = inteiroPositivo(dados.codparc ?? existente.codparc, 'Código do parceiro');
+  const codemp = inteiroPositivo(dados.codemp ?? existente.codemp, 'Empresa');
+  const empresaNome = limparTexto(dados.empresaNome ?? existente.empresaNome, 160);
+  const vinculo = limparTexto(dados.vinculo ?? existente.vinculo ?? 'motorista', 30).toLowerCase();
+  if (!/^[a-z0-9._-]{3,80}$/.test(usuario)) throw new Error('Usuário deve ter 3 a 80 caracteres: letras, números, ponto, hífen ou sublinhado.');
+  if (!nome) throw new Error('Informe o nome do motorista.');
+  if (!empresaNome) throw new Error('Informe o nome da empresa.');
+  if (!['motorista', 'transportadora'].includes(vinculo)) throw new Error('Vínculo deve ser motorista ou transportadora.');
+  return { usuario, nome, codparc, codemp, empresaNome, vinculo };
+}
+
+async function lerUsuarios() {
+  try {
+    const conteudo = await fs.readFile(usersManifest, 'utf8');
+    const dados = JSON.parse(conteudo);
+    return Array.isArray(dados) ? dados : [];
+  } catch (erro) {
+    if (erro.code === 'ENOENT') return [];
+    throw erro;
+  }
+}
+
+async function gravarUsuarios(usuarios) {
+  await fs.writeFile(usersManifest, JSON.stringify(usuarios, null, 2), 'utf8');
+}
+
+async function garantirUsuariosIniciais() {
+  const usuarios = await lerUsuarios();
+  let alterou = false;
+  if (adminBootstrap.usuario && adminBootstrap.senha && !usuarios.some((item) => item.usuario === adminBootstrap.usuario)) {
+    usuarios.push({
+      id: crypto.randomUUID(),
+      perfil: 'admin',
+      usuario: adminBootstrap.usuario,
+      nome: adminBootstrap.nome,
+      ativo: true,
+      senhaHash: criarHashSenha(adminBootstrap.senha),
+      criadoEm: new Date().toISOString(),
+      atualizadoEm: new Date().toISOString(),
+    });
+    alterou = true;
+  }
+  if (pilotUser && pilotPassword && !usuarios.some((item) => item.usuario === pilotUser)) {
+    usuarios.push({
+      id: crypto.randomUUID(),
+      perfil: 'motorista',
+      usuario: pilotUser,
+      nome: pilotDriver.nome,
+      codparc: pilotDriver.id,
+      codemp: pilotDriver.empresa,
+      empresaNome: pilotDriver.empresaNome,
+      vinculo: pilotDriver.vinculo,
+      ativo: true,
+      senhaHash: criarHashSenha(pilotPassword),
+      criadoEm: new Date().toISOString(),
+      atualizadoEm: new Date().toISOString(),
+    });
+    alterou = true;
+  }
+  if (alterou) await gravarUsuarios(usuarios);
+}
+
+function sessaoUsuario(usuario) {
+  return usuario.perfil === 'admin'
+    ? { id: usuario.id, perfil: 'admin', usuario: usuario.usuario, nome: usuario.nome }
+    : {
+      id: usuario.codparc,
+      perfil: 'motorista',
+      usuario: usuario.usuario,
+      nome: usuario.nome,
+      empresa: usuario.codemp,
+      empresaNome: usuario.empresaNome,
+      vinculo: usuario.vinculo,
+    };
+}
+
 async function localizarEvidencia(id, sessao) {
   const evidencias = await lerEvidencias();
-  const indice = evidencias.findIndex((item) => item.id === id && item.usuario === sessao.usuario);
+  const indice = evidencias.findIndex((item) => item.id === id && (sessao.perfil === 'admin' || item.usuario === sessao.usuario));
   return { evidencias, indice, evidencia: indice >= 0 ? evidencias[indice] : null };
 }
 
@@ -262,7 +385,7 @@ async function servirEvidencia(res, req, id, tipo) {
   const sessao = exigirSessao(req, res);
   if (!sessao) return;
   const evidencias = await lerEvidencias();
-  const evidencia = evidencias.find((item) => item.id === id && item.usuario === sessao.usuario);
+  const evidencia = evidencias.find((item) => item.id === id && (sessao.perfil === 'admin' || item.usuario === sessao.usuario));
   const arquivo = evidencia?.arquivos?.[tipo];
   if (!arquivo) return responderErro(res, 404, 'Evidência não encontrada.');
   try {
@@ -287,19 +410,21 @@ async function atender(req, res) {
     const usuario = limparTexto(body.usuario, 80).toLowerCase();
     const senha = String(body.senha ?? '');
     if (!usuario || !senha) return responderErro(res, 400, 'Informe usuário e senha.');
-    if (!pilotPassword) return responderErro(res, 503, 'A autenticação ainda não foi configurada no servidor.');
-    if (!segredoIgual(usuario, pilotUser) || !segredoIgual(senha, pilotPassword)) {
+    const usuarios = await lerUsuarios();
+    const conta = usuarios.find((item) => item.usuario === usuario && item.ativo !== false);
+    if (!conta || !conferirHashSenha(senha, conta.senhaHash)) {
       return responderErro(res, 401, 'Usuário ou senha inválidos.');
     }
-    const token = criarSessao();
+    const sessao = sessaoUsuario(conta);
+    const token = criarSessao(sessao);
     definirCookie(res, token);
-    return responderJson(res, 200, { motorista: pilotDriver, usuario: pilotUser, ambiente: 'piloto operacional', baixaHabilitada: baixaAtiva });
+    return responderJson(res, 200, { ...sessao, motorista: sessao.perfil === 'motorista' ? sessao : null, ambiente: 'piloto operacional', baixaHabilitada: baixaAtiva });
   }
 
   if (req.method === 'GET' && url.pathname === '/api/sessao') {
     const sessao = exigirSessao(req, res);
     if (!sessao) return;
-    return responderJson(res, 200, { motorista: pilotDriver, usuario: sessao.usuario, ambiente: 'piloto operacional', baixaHabilitada: baixaAtiva });
+    return responderJson(res, 200, { ...sessao, motorista: sessao.perfil === 'motorista' ? sessao : null, ambiente: 'piloto operacional', baixaHabilitada: baixaAtiva });
   }
 
   if (req.method === 'POST' && url.pathname === '/api/logout') {
@@ -310,7 +435,7 @@ async function atender(req, res) {
   }
 
   if (req.method === 'GET' && url.pathname === '/api/cargas') {
-    const sessao = exigirSessao(req, res);
+    const sessao = exigirMotorista(req, res);
     if (!sessao) return;
     try {
       const dados = await consultarCargasComRenovacao({
@@ -326,10 +451,94 @@ async function atender(req, res) {
   }
 
   if (req.method === 'GET' && url.pathname === '/api/evidencias') {
-    const sessao = exigirSessao(req, res);
+    const sessao = exigirMotorista(req, res);
     if (!sessao) return;
     const dados = await lerEvidencias();
     return responderJson(res, 200, dados.filter((item) => item.usuario === sessao.usuario));
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/admin/evidencias') {
+    if (!exigirAdmin(req, res)) return;
+    const motorista = limparTexto(url.searchParams.get('motorista'), 80).toLowerCase();
+    const status = limparTexto(url.searchParams.get('status'), 30).toUpperCase();
+    const oc = limparTexto(url.searchParams.get('oc'), 30);
+    const dados = await lerEvidencias();
+    const filtrados = dados.filter((item) => {
+      if (motorista && item.usuario !== motorista) return false;
+      if (oc && String(item.oc) !== oc) return false;
+      if (status && String(item.baixa?.status || '').toUpperCase() !== status) return false;
+      return true;
+    });
+    return responderJson(res, 200, filtrados);
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/admin/resumo') {
+    if (!exigirAdmin(req, res)) return;
+    const [usuarios, evidencias] = await Promise.all([lerUsuarios(), lerEvidencias()]);
+    const porStatus = evidencias.reduce((total, item) => {
+      const status = String(item.baixa?.status || 'PENDENTE').toUpperCase();
+      total[status] = (total[status] || 0) + 1;
+      return total;
+    }, {});
+    return responderJson(res, 200, {
+      motoristasAtivos: usuarios.filter((item) => item.perfil === 'motorista' && item.ativo !== false).length,
+      evidencias: evidencias.length,
+      baixasConfirmadas: porStatus.CONFIRMADA || 0,
+      baixasPendentes: (porStatus.PENDENTE || 0) + (porStatus.ERRO || 0) + (porStatus.PROCESSANDO || 0),
+    });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/admin/motoristas') {
+    if (!exigirAdmin(req, res)) return;
+    const usuarios = await lerUsuarios();
+    return responderJson(res, 200, usuarios.filter((item) => item.perfil === 'motorista').map(usuarioPublico));
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/admin/motoristas') {
+    if (!exigirAdmin(req, res)) return;
+    try {
+      const body = await lerJson(req, 64 * 1024);
+      const senha = String(body.senha || '');
+      if (senha.length < 8) throw new Error('A senha temporária deve ter ao menos 8 caracteres.');
+      const cadastro = normalizarUsuarioCadastro(body);
+      const usuarios = await lerUsuarios();
+      if (usuarios.some((item) => item.usuario === cadastro.usuario)) throw new Error('Este usuário já está cadastrado.');
+      const agora = new Date().toISOString();
+      const motorista = { id: crypto.randomUUID(), perfil: 'motorista', ...cadastro, ativo: true, senhaHash: criarHashSenha(senha), criadoEm: agora, atualizadoEm: agora };
+      usuarios.push(motorista);
+      await gravarUsuarios(usuarios);
+      return responderJson(res, 201, usuarioPublico(motorista));
+    } catch (erro) {
+      return responderErro(res, 400, erro.message || 'Não foi possível cadastrar o motorista.');
+    }
+  }
+
+  const motoristaMatch = url.pathname.match(/^\/api\/admin\/motoristas\/([a-f0-9-]+)$/i);
+  if (req.method === 'PATCH' && motoristaMatch) {
+    if (!exigirAdmin(req, res)) return;
+    try {
+      const body = await lerJson(req, 64 * 1024);
+      const usuarios = await lerUsuarios();
+      const indice = usuarios.findIndex((item) => item.id === motoristaMatch[1] && item.perfil === 'motorista');
+      if (indice < 0) return responderErro(res, 404, 'Motorista não encontrado.');
+      const atual = usuarios[indice];
+      const cadastro = normalizarUsuarioCadastro(body, atual);
+      if (usuarios.some((item, itemIndice) => itemIndice !== indice && item.usuario === cadastro.usuario)) throw new Error('Este usuário já está cadastrado.');
+      const senha = String(body.senha || '');
+      if (senha && senha.length < 8) throw new Error('A nova senha deve ter ao menos 8 caracteres.');
+      const atualizado = {
+        ...atual,
+        ...cadastro,
+        ativo: body.ativo === undefined ? atual.ativo !== false : Boolean(body.ativo),
+        senhaHash: senha ? criarHashSenha(senha) : atual.senhaHash,
+        atualizadoEm: new Date().toISOString(),
+      };
+      usuarios[indice] = atualizado;
+      await gravarUsuarios(usuarios);
+      return responderJson(res, 200, usuarioPublico(atualizado));
+    } catch (erro) {
+      return responderErro(res, 400, erro.message || 'Não foi possível atualizar o motorista.');
+    }
   }
 
   const arquivoMatch = url.pathname.match(/^\/api\/evidencias\/([a-f0-9-]+)\/arquivo\/(nota|entrega|assinatura)$/i);
@@ -338,7 +547,7 @@ async function atender(req, res) {
   }
 
   if (req.method === 'POST' && url.pathname === '/api/evidencias') {
-    const sessao = exigirSessao(req, res);
+    const sessao = exigirMotorista(req, res);
     if (!sessao) return;
     let body;
     try {
@@ -391,7 +600,7 @@ async function atender(req, res) {
 
   const baixaMatch = url.pathname.match(/^\/api\/evidencias\/([a-f0-9-]+)\/baixa$/i);
   if (req.method === 'POST' && baixaMatch) {
-    const sessao = exigirSessao(req, res);
+    const sessao = exigirMotorista(req, res);
     if (!sessao) return;
     const id = baixaMatch[1];
     if (baixasEmAndamento.has(id)) return responderErro(res, 409, 'Esta baixa já está sendo processada.');
@@ -509,6 +718,7 @@ async function atender(req, res) {
 }
 
 await fs.mkdir(evidenceDir, { recursive: true });
+await garantirUsuariosIniciais();
 
 const server = http.createServer((req, res) => {
   atender(req, res).catch((erro) => {

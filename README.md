@@ -11,6 +11,8 @@ Aplicativo web para o piloto do motorista da GTM.
 - Captura de localizacao somente quando solicitada.
 - Armazenamento local das evidencias no servidor do app.
 - Confirmacao de entrega pela acao oficial do Sankhya, apos a evidencia ser salva.
+- Área administrativa em `/admin.html` para acompanhar evidências e baixas de
+  todos os motoristas e administrar seus acessos.
 
 ## Fluxo de baixa
 
@@ -29,7 +31,11 @@ navegador.
 
 ## Execucao local
 
-Defina `APP_DRIVER_USER`, `APP_DRIVER_PASSWORD`, `APP_DRIVER_CODPARC`, `APP_DRIVER_NOME`, `APP_DRIVER_CODEMP` e `APP_DRIVER_VINCULO` no ambiente e execute. O vínculo aceita `motorista` ou `transportadora` e determina em qual campo da ordem de carga o aplicativo fará a atribuição.
+Defina `APP_DRIVER_USER`, `APP_DRIVER_PASSWORD`, `APP_DRIVER_CODPARC`, `APP_DRIVER_NOME`, `APP_DRIVER_CODEMP` e `APP_DRIVER_VINCULO` no ambiente e execute. O vínculo aceita `motorista` ou `transportadora` e determina em qual campo da ordem de carga o aplicativo fará a atribuição. Para criar o primeiro acesso administrativo, defina também `APP_ADMIN_USER`, `APP_ADMIN_PASSWORD` e, opcionalmente, `APP_ADMIN_NOME`.
+
+Na primeira inicialização, as contas configuradas no ambiente são migradas para
+`app/data/usuarios.json` com senha derivada por hash. Depois disso, a logística
+cria e inativa motoristas na tela administrativa, sem alterar cadastros no Sankhya.
 
 ```powershell
 $env:APP_DRIVER_PASSWORD = 'senha-local'

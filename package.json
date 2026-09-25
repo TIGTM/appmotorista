@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "node app/server.mjs",
-    "check": "node --check app/server.mjs && node --check app/public/app.js && node --check app/public/sw.js && node --check scripts/consulta-app-motorista-readonly.mjs && node --check scripts/sankhya-baixa-entrega.mjs",
+    "check": "node --check app/server.mjs && node --check app/public/app.js && node --check app/public/admin.js && node --check app/public/sw.js && node --check scripts/consulta-app-motorista-readonly.mjs && node --check scripts/sankhya-baixa-entrega.mjs",
     "test": "node --test scripts/app-motorista.test.mjs"
   }
 }
